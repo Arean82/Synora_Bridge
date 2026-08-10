@@ -112,12 +112,18 @@ def test_graphql_dynamic_schema(client, mock_source_url):
         }],
     )
     try:
+        # Bare slug redirects to the first destination (original parity).
         r = client.get(f"/api/v1/bridge/graphql/{gql.slug}/")
+        assert r.status_code == 302
+        assert "c1" in r.headers["Location"]
+
+        # Dest-specific GET renders the GraphiQL playground.
+        r = client.get(f"/api/v1/bridge/graphql/{gql.slug}/c1/")
         assert r.status_code == 200
         assert "GraphiQL" in r.content.decode()
 
         r = client.post(
-            f"/api/v1/bridge/graphql/{gql.slug}/",
+            f"/api/v1/bridge/graphql/{gql.slug}/c1/",
             data=json.dumps({"query": "{ data { company { name } gps { latitude } } }"}),
             content_type="application/json",
         )
@@ -152,11 +158,11 @@ def test_mock_server(client):
         }),
     )
     try:
-        r = client.get(f"/api/v1/mock/{conn.id}/users/42")
+        r = client.get(f"/api/v1/mock/{conn.pk}/users/42")
         assert r.status_code == 200
         assert r.json()["name"] == "Alice"
 
-        r = client.get(f"/api/v1/mock/{conn.id}/unknown")
+        r = client.get(f"/api/v1/mock/{conn.pk}/unknown")
         assert r.status_code == 404
     finally:
         conn.delete()

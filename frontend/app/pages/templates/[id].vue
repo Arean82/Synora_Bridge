@@ -8,6 +8,6 @@ const id = Number(route.params.id);
 
 <template>
   <div class="space-y-4">
-    <TemplateBuilder :template-id="id" />
+    <TemplatesTemplateBuilder :template-id="id" />
   </div>
 </template>

@@ -93,12 +93,24 @@ def _payload_type_name(slug: str) -> str:
     return "".join(p.capitalize() for p in parts) + "Payload"
 
 
-def build_graphql_schema(template):
-    """Build a full Strawberry schema for a template's GraphQL pull endpoint."""
+def _resolve_destination(template, dest_slug=None):
+    """Pick the destination by slug, or fall back to the first."""
     destinations = template.destinations or []
     if not destinations:
-        destinations = [{"name": "default", "field_mapping": []}]
-    mapping = destinations[0].get("field_mapping", [])
+        return {"name": "default", "field_mapping": []}
+    if dest_slug:
+        for dest in destinations:
+            slug = re.sub(r"[^a-z0-9]", "_", (dest.get("name") or "").lower())
+            if slug == dest_slug:
+                return dest
+        # Unknown slug: fall back to the first destination (original behavior).
+    return destinations[0]
+
+
+def build_graphql_schema(template, dest_slug=None):
+    """Build a full Strawberry schema for a template's GraphQL pull endpoint."""
+    dest = _resolve_destination(template, dest_slug)
+    mapping = dest.get("field_mapping", [])
 
     schema_dict = build_schema_dict(mapping)
     if not schema_dict:
@@ -117,17 +129,18 @@ def build_graphql_schema(template):
     return strawberry.Schema(query=Query)  # type: ignore[arg-type]
 
 
-def execute_graphql(template, query, variables=None):
+def execute_graphql(template, query, variables=None, dest_slug=None):
     """Fetch sources, transform, and execute a GraphQL query against the
-    template's dynamic schema. Returns (data, errors)."""
+    template's dynamic schema (optionally for one destination). Returns
+    (data, errors)."""
     from apps.jobs.tasks import fetch_all_sources
 
+    dest = _resolve_destination(template, dest_slug)
+    mapping = dest.get("field_mapping", [])
     aggregated = fetch_all_sources(template)
-    destinations = template.destinations or []
-    mapping = destinations[0].get("field_mapping", []) if destinations else []
     result_payload = build_nested_payload(mapping, aggregated)
 
-    schema = build_graphql_schema(template)
+    schema = build_graphql_schema(template, dest_slug)
     result = schema.execute_sync(
         query,
         variable_values=variables or {},

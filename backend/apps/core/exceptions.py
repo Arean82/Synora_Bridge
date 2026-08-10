@@ -1,7 +1,7 @@
-"""
-Core exceptions — uniform API error handling.
+﻿"""
+Core exceptions â€” uniform API error handling.
 
-Ports Flask `bridge_app/utils/errors.py` into DRF idioms: an `APIError`
+Ports original `bridge_app/utils/errors.py` into DRF idioms: an `APIError`
 exception that DRF handlers translate into JSON {status, message, code}.
 """
 from rest_framework import status
@@ -28,7 +28,7 @@ def api_exception_handler(exc, context):
     """DRF exception handler producing a uniform {status, message, code} body."""
     response = exception_handler(exc, context)
     if response is None:
-        # Non-DRF exceptions (e.g. Django Http404, PermissionDenied) — re-raise
+        # Non-DRF exceptions (e.g. Django Http404, PermissionDenied) â€” re-raise
         # so Django's own handlers produce sensible responses.
         return None
 

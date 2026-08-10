@@ -1,6 +1,9 @@
 /* Synora Bridge — Tailwind CSS v4 entry + base styles. */
 @import "tailwindcss";
 
+/* Class-based dark mode: toggle the `dark` class on <html> (theme switcher). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light dark;
 }

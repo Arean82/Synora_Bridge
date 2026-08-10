@@ -1,9 +1,9 @@
-"""
-Data transformation service — dynamic nested payload construction.
+﻿"""
+Data transformation service â€” dynamic nested payload construction.
 
-Ports Flask `bridge_app/services/data_transform.py` verbatim: builds arbitrary
+Ports original `bridge_app/services/data_transform.py` verbatim: builds arbitrary
 nested JSON payloads from dot/bracket notation targets
-(e.g. `gps_data[0].latitude` → source field `lat`), with optional value
+(e.g. `gps_data[0].latitude` â†’ source field `lat`), with optional value
 mapping / type casting.
 """
 import re

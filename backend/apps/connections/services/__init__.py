@@ -1,7 +1,7 @@
-"""
-Connections domain services — Swagger/OpenAPI fetching and URL fixing.
+﻿"""
+Connections domain services â€” Swagger/OpenAPI fetching and URL fixing.
 
-Ports Flask `bridge_app/services/swagger_utils.py`:
+Ports original `bridge_app/services/swagger_utils.py`:
 - fetch_swagger_json: fetch a spec from a URL (HTML wrapper extraction supported)
 - fix_swagger_urls: resolve relative server URLs against the source
 """

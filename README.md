@@ -32,9 +32,16 @@ Nuxt 4 (Vue 3) — frontend SPA (Tailwind v4 + PrimeVue fallback)
 
 - **Push mode** — scheduled multi-source fetch (concurrent/async) → transform via field mappings → push to multiple destinations with retries, auth flows, audit, failed-payload queue, email alerts, live WebSocket feed.
 - **Pull REST** — auto-generated endpoints with dynamic OpenAPI specs in **2.0 / 3.0.3 / 3.1.0 / 3.2.0** + Swagger UI.
-- **Pull GraphQL** — auto-generated Strawberry schema (nested objects/lists from field mappings) + GraphiQL playground.
+- **Pull GraphQL** — auto-generated Strawberry schema (nested objects/lists from field mappings) + GraphiQL playground (per-template and per-destination).
 - **Mock server** — serve example JSON from any connection's OpenAPI spec.
-- **Security** — AES-256-GCM at-rest encryption, per-template bearer auth, SSRF-protected spec validation, rate limiting, fail-fast config validation.
+- **System Configuration GUI** — view/edit the entire `backend/config.ini` from the browser (all 16 sections, typed widgets, restart-required banner).
+- **Templates** — per-template **Docs** (Swagger UI, 3.2.0 default), **GraphQL playground**, **Clone**, **Edit** and **Delete**; two-pane **IN/OUT builder** (Source Input API ↔ Destination Client API, mode dropdown, global security token, mode-specific config, schedule footer).
+- **Connections** — Add Connection modal (REST/GraphQL, URL/paste spec, upstream auth), status toggle, refresh, per-connection docs/playground/mock.
+- **Dashboard** — schedule table with per-job toggle, **Bulk Start/Stop + master select**, live 5s polling.
+- **Audit** — transaction details modal with syntax-highlighted payload JSON.
+- **Email templates** — list/read/edit failure-alert templates (path-traversal hardened).
+- **Validation utilities** — `/connections/validate` (SSRF-hardened), `/test_mapping` (mapping preview), `/bridge/graphql_introspect`.
+- **Security** — AES-256-GCM at-rest encryption, per-template bearer auth on data execution (docs/playground public), SSRF protection, rate limiting, fail-fast config validation.
 - **Scale** — indexed slug routing, Redis pull cache, async upstream fetch, Celery worker tuning, pgbouncer + nginx templates, OpenTelemetry (config-gated).
 
 ## Quick start

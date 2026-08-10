@@ -1,7 +1,7 @@
-"""
-Configs domain models — the bridge execution template.
+﻿"""
+Configs domain models â€” the bridge execution template.
 
-Faithful port of Flask `TemplateModel`: a template defines the sources to pull
+Faithful port of original `TemplateModel`: a template defines the sources to pull
 from, the destinations to push to, field mappings, and the execution mode
 (push / pull_rest / pull_graphql). Sensitive JSON payloads (sources contain
 auth tokens, destinations contain credentials) are encrypted at rest.
@@ -16,7 +16,7 @@ from apps.core.fields import EncryptedJSONField, EncryptedTextField
 
 
 class Template(models.Model):
-    """A bridge configuration template (source → mapping → destinations)."""
+    """A bridge configuration template (source â†’ mapping â†’ destinations)."""
 
     EXECUTION_MODES = [
         ("push", "Push"),
@@ -39,7 +39,7 @@ class Template(models.Model):
 
     # --- Partner (source) config ---
     # Legacy single-endpoint fields (kept for backward compatibility with the
-    # Flask data model; new templates use `sources`).
+    # original data model; new templates use `sources`).
     partner_url = models.CharField(max_length=255, blank=True, null=True)
     partner_auth_token = EncryptedTextField(blank=True, null=True)
 

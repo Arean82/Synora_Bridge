@@ -1,5 +1,5 @@
-"""
-Encrypted model fields — transparent AES-256-GCM at-rest encryption.
+﻿"""
+Encrypted model fields â€” transparent AES-256-GCM at-rest encryption.
 
 - EncryptedTextField: string values (tokens, keys)
 - EncryptedJSONField: JSON values (sources, destinations, credentials)
@@ -7,10 +7,10 @@ Encrypted model fields — transparent AES-256-GCM at-rest encryption.
 Both store ciphertext in a TEXT column and decrypt on read. DRF serializers
 MUST declare EncryptedJSONField columns explicitly as serializers.JSONField()
 (see each app's serializers.py) because DRF maps model field types to
-serializer field types by class — a TextField subclass maps to CharField.
+serializer field types by class â€” a TextField subclass maps to CharField.
 
 Storage format: `$e$` + base64(nonce + ciphertext). Legacy plaintext and
-legacy marker-less Flask ciphertext are detected and handled on read.
+legacy marker-less original ciphertext are detected and handled on read.
 """
 import json
 
@@ -56,7 +56,7 @@ class EncryptedJSONField(models.TextField):
         try:
             return json.loads(decrypted)
         except (json.JSONDecodeError, TypeError):
-            # Legacy plaintext JSON or malformed — return raw string.
+            # Legacy plaintext JSON or malformed â€” return raw string.
             return decrypted
 
     def to_python(self, value):

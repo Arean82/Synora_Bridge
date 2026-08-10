@@ -1,9 +1,9 @@
-"""
-Encryption service — AES-256-GCM at-rest protection for sensitive fields.
+﻿"""
+Encryption service â€” AES-256-GCM at-rest protection for sensitive fields.
 
-Faithful port of the Flask bridge_app/services/encryption.py, hardened:
+Faithful port of the original bridge_app/services/encryption.py, hardened:
 - marker-prefixed ciphertext (`$e$`) so encrypted values are unambiguous
-- legacy plaintext / legacy Flask-format values are detected and returned as-is
+- legacy plaintext / legacy original-format values are detected and returned as-is
 - production refuses to boot with an unset ENCRYPTION_KEY; dev derives a key
   from SECRET_KEY so local data is still encrypted at rest
 """
@@ -53,7 +53,7 @@ def encrypt(plain_text: str) -> str:
 
 
 def _try_legacy_decrypt(value: str) -> str | None:
-    """Best-effort decrypt of legacy (marker-less) Flask ciphertext."""
+    """Best-effort decrypt of legacy (marker-less) original ciphertext."""
     try:
         combined = base64.b64decode(value.encode("utf-8"))
     except Exception:
@@ -82,6 +82,6 @@ def decrypt(cipher_b64: str) -> str:
             return aesgcm.decrypt(combined[:12], combined[12:], None).decode("utf-8")
         except (InvalidTag, ValueError, TypeError):
             return cipher_b64
-    # Marker-less: try legacy Flask format, else treat as plaintext.
+    # Marker-less: try legacy original format, else treat as plaintext.
     legacy = _try_legacy_decrypt(cipher_b64)
     return legacy if legacy is not None else cipher_b64

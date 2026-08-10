@@ -1,7 +1,7 @@
-"""
+﻿"""
 Dynamic OpenAPI spec generator for Pull REST endpoints.
 
-Ports Flask `bridge_app/services/swagger_service.py`, producing specs in
+Ports original `bridge_app/services/swagger_service.py`, producing specs in
 Swagger 2.0 / OpenAPI 3.0.3 / 3.1.0 / 3.2.0 on the fly from a template's
 field mappings. Structure follows the official OpenAPI Specification
 (3.2.0 spec per the official OpenAPI Specification repository, versions/3.2.0.md).

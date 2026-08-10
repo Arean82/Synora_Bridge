@@ -70,8 +70,13 @@ The `environment` flag selects the database: **development → SQLite, productio
 | REST API | `/api/v1/*` (templates, jobs, connections, settings, audit, health, metrics, config) |
 | System Configuration | `GET/PUT /api/v1/config/` — read/write the full `config.ini` from the Settings GUI |
 | Dynamic pull REST | `/api/v1/bridge/pull/<slug>/<dest>/` · spec `?version=2.0|3.0.3|3.1.0|3.2.0` · Swagger UI `docs` |
-| Dynamic pull GraphQL | `/api/v1/bridge/graphql/<slug>/` (GET = GraphiQL, POST = execute) |
+| Dynamic pull GraphQL | `/api/v1/bridge/graphql/<slug>/<dest>/` (GET = GraphiQL, POST = execute) |
+| Spec validation | `POST /api/v1/connections/validate/` (url/file/paste, SSRF-hardened) |
+| Mapping preview | `POST /api/v1/test_mapping/` |
+| GQL introspection | `POST /api/v1/bridge/graphql_introspect/` |
+| Per-connection pages | `/api/v1/docs/<id>/` (Swagger UI) · `/api/v1/graphql/test/<id>/` (GraphiQL) |
 | Mock server | `/api/v1/mock/<connection_id>/<path>` |
+| Email templates | `/api/v1/email-templates/` + `/…/<filename>/` (list/read/save) |
 | OpenAPI schema + docs | `/schema/` · `/schema/swagger-ui/` · `/schema/redoc/` |
 | WebSockets | `/ws/feed/<template_id>/` |
 

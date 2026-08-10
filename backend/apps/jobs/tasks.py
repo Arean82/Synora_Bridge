@@ -1,11 +1,11 @@
-"""
-Celery tasks — the push/pull execution engine.
+﻿"""
+Celery tasks â€” the push/pull execution engine.
 
-Ports Flask `bridge_app/services/task_runner.py`:
+Ports original `bridge_app/services/task_runner.py`:
 
-- pull_and_push_job(job_id): fetch all sources concurrently → aggregate with
-  source_N. prefixes → transform per destination mapping → push with retry +
-  auth flows → audit + failed-payload capture + email alerts + WebSocket feed.
+- pull_and_push_job(job_id): fetch all sources concurrently â†’ aggregate with
+  source_N. prefixes â†’ transform per destination mapping â†’ push with retry +
+  auth flows â†’ audit + failed-payload capture + email alerts + WebSocket feed.
 - execute_template_mapping(template_id, dest_slug): pull-mode variant that
   fetches sources and returns the transformed payload without pushing.
 - cleanup_failed_payloads(): prune expired failed payloads.
@@ -229,7 +229,7 @@ def _store_failed_payload(job, template, payload, error_msg):
 # ---------------------------------------------------------------------------
 @shared_task(bind=True, name="apps.jobs.tasks.pull_and_push_job", max_retries=0)
 def pull_and_push_job(self, job_id):
-    """Core push engine: fetch sources → map → push to all destinations."""
+    """Core push engine: fetch sources â†’ map â†’ push to all destinations."""
     from apps.core.services.data_transform import build_nested_payload
     from apps.jobs.models import Job
     from apps.realtime.services import broadcast_feed

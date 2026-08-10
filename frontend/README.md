@@ -33,14 +33,14 @@ app/
     api/                     # hey-api generated client (types.gen, sdk.gen)
     api-client.ts            # base URL helper
   pages/
-    index.vue                # dashboard (metrics + recent runs)
-    templates/index.vue      # template list
-    templates/create.vue     # new template builder
-    templates/[id].vue       # edit template
-    connections/index.vue    # API connections CRUD + mock links
-    settings/index.vue       # runtime UI settings (AppSetting API)
-    audit/index.vue          # universal audit log viewer
-  plugins/primevue.ts        # PrimeVue (Aura theme, dark-mode aware)
+    index.vue                # Schedule dashboard (bulk start/stop, live 5s polling)
+    templates/index.vue      # template list (Docs/GraphQL/Clone/Edit/Delete)
+    templates/create.vue     # two-pane IN/OUT builder (+ ?clone=<id> prefill)
+    templates/[id].vue       # edit template (two-pane builder)
+    connections/index.vue    # connections + Add modal (REST/GraphQL), refresh/toggle/docs
+    settings/index.vue       # full System Configuration GUI (config.ini)
+    audit/index.vue          # audit viewer + Transaction Details modal
+  plugins/primevue.ts        # PrimeVue v3 (MIT, Aura theme, dark-mode aware)
 ```
 
 ## Regenerating the API client

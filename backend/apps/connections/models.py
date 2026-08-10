@@ -1,7 +1,7 @@
-"""
-Connections domain models — API connections (Swagger/OpenAPI specs).
+﻿"""
+Connections domain models â€” API connections (Swagger/OpenAPI specs).
 
-Faithful port of Flask `SwaggerConnection`: a connection stores a fetched
+Faithful port of original `SwaggerConnection`: a connection stores a fetched
 OpenAPI/Swagger spec (or a local file), its auth configuration, and drives
 both the field-mapping UI and the mock server. Auth configs and custom headers
 are encrypted at rest.

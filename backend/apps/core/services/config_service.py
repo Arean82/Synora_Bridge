@@ -6,8 +6,8 @@ typed (bool/int/str) so the frontend renders the right widget; writes are
 validated (unknown sections/keys rejected) and applied without destroying
 comments (set_ini_value). Reports which changed keys require a restart.
 
-Faithful to the original Flask settings page semantics, minus its bugs:
-- checkbox booleans default to false when absent (Flask parity)
+Faithful to the original original settings page semantics, minus its bugs:
+- checkbox booleans default to false when absent (original parity)
 - no `os.execl` self-restart; a `restart_required` flag is returned instead
 """
 from config.ini_config import get_config_dict, requires_restart, set_ini_value

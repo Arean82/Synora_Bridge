@@ -17,6 +17,11 @@ const modeBadge = (mode: string) => ({
 const jobCount = (templateId: number) =>
   (jobs.value?.results ?? []).filter((j: any) => j.template === templateId).length;
 
+const firstDestSlug = (tpl: any) => {
+  const dest = tpl.destinations?.[0];
+  return (dest?.name || 'default').toLowerCase().replace(/[^a-z0-9]/g, '_');
+};
+
 const confirmDelete = async (tpl: any) => {
   if (!window.confirm(`Delete template "${tpl.name}"?`)) return;
   await api.request(`/api/v1/templates/${tpl.id}/`, { method: 'DELETE' });
@@ -70,8 +75,31 @@ const confirmDelete = async (tpl: any) => {
               <td class="px-5 py-3 text-slate-500 dark:text-slate-400">{{ new Date(tpl.updated_at).toLocaleDateString() }}</td>
               <td class="px-5 py-3">
                 <div class="flex justify-end gap-2">
+                  <!-- Docs: Swagger UI for the generated pull spec (original parity) -->
+                  <a
+                    v-if="tpl.execution_mode === 'pull_rest'"
+                    :href="`${api.base}/api/v1/bridge/pull/${tpl.slug}/docs?version=3.2.0`"
+                    target="_blank"
+                    class="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                    title="View API docs (Swagger UI)"
+                  >
+                    Docs
+                  </a>
+                  <!-- GraphQL playground for pull_graphql templates (original parity) -->
+                  <a
+                    v-if="tpl.execution_mode === 'pull_graphql'"
+                    :href="`${api.base}/api/v1/bridge/graphql/${tpl.slug}/${firstDestSlug(tpl)}/`"
+                    target="_blank"
+                    class="rounded px-2 py-1 text-xs text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950"
+                    title="Open GraphQL playground"
+                  >
+                    GraphQL
+                  </a>
                   <NuxtLink :to="`/templates/${tpl.id}`" class="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
                     Edit
+                  </NuxtLink>
+                  <NuxtLink :to="`/templates/create?clone=${tpl.id}`" class="rounded px-2 py-1 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950">
+                    Clone
                   </NuxtLink>
                   <button class="rounded px-2 py-1 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950" @click="confirmDelete(tpl)">
                     Delete

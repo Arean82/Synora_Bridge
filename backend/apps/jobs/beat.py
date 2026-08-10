@@ -1,7 +1,7 @@
-"""
-Beat sync — keep django-celery-beat PeriodicTasks in sync with Job records.
+﻿"""
+Beat sync â€” keep django-celery-beat PeriodicTasks in sync with Job records.
 
-The original Flask app restored active jobs into APScheduler at startup and
+The original original app restored active jobs into APScheduler at startup and
 toggled them on the fly. With Django + django-celery-beat (DatabaseScheduler),
 each active Job maps to one IntervalSchedule + PeriodicTask; signals keep the
 schedule current on create/update/delete/toggle without any manual step.

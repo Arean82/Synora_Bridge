@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Default layout — sidebar navigation (mirrors the Flask UI structure).
+// Default layout — sidebar navigation (mirrors the original UI structure).
 const nav = [
   { to: '/', label: 'Dashboard', icon: 'i-heroicons-home' },
   { to: '/templates', label: 'Templates', icon: 'i-heroicons-squares-2x2' },
@@ -10,6 +10,8 @@ const nav = [
 
 const route = useRoute();
 const { apiBase } = useRuntimeConfig().public;
+const { isDark, toggle } = useTheme();
+const docsViewer = ref<InstanceType<typeof UiDocsViewer> | null>(null);
 
 const isActive = (to: string) => route.path === to || (to !== '/' && route.path.startsWith(to));
 </script>
@@ -55,6 +57,21 @@ const isActive = (to: string) => route.path === to || (to !== '/' && route.path.
           {{ route.meta.title || 'Synora Bridge' }}
         </h1>
         <div class="flex items-center gap-3">
+          <!-- Docs viewer (original docs modal parity) -->
+          <button
+            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="docsViewer?.show()"
+          >
+            Docs
+          </button>
+          <!-- Theme switcher (original theme.js parity) -->
+          <button
+            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="toggle"
+            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            {{ isDark ? '🌙' : '☀️' }}
+          </button>
           <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
             Backend: {{ apiBase }}
           </span>
@@ -63,6 +80,7 @@ const isActive = (to: string) => route.path === to || (to !== '/' && route.path.
       <main class="flex-1 overflow-y-auto p-6">
         <slot />
       </main>
+      <UiDocsViewer ref="docsViewer" />
     </div>
   </div>
 </template>

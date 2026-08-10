@@ -1,7 +1,7 @@
-"""
-Realtime consumers — Channels WebSocket endpoints.
+﻿"""
+Realtime consumers â€” Channels WebSocket endpoints.
 
-`FeedConsumer` mirrors the original Flask SocketIO `feed_<template_id>`
+`FeedConsumer` mirrors the original original SocketIO `feed_<template_id>`
 broadcast: any connected client subscribed to a template receives the latest
 aggregated payload whenever a push job runs for that template.
 

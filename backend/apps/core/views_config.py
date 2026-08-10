@@ -1,6 +1,6 @@
 """
 Config API views — read/write the runtime config.ini for the System
-Configuration GUI. Mirrors the original Flask `/settings` + `/settings/save`
+Configuration GUI. Mirrors the original original `/settings` + `/settings/save`
 semantics (all sections visible + editable) without its bugs.
 """
 import logging
@@ -63,3 +63,86 @@ def config_endpoint(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     return Response(result)
+
+
+@extend_schema(
+    summary="Read a project documentation file (README.md / docs/*.md)",
+    responses={200: inline_serializer("DocContent", fields={"filename": serializers.CharField(), "content": serializers.CharField()})},
+)
+@api_view(["GET"])
+def doc_content(request, filename):
+    """Serve markdown docs for the frontend viewer (original docs modal parity).
+
+    README.md is served from the repo root; everything else from docs/.
+    Traversal is rejected (hardened: the original only blocked `..` and `/`).
+    """
+    from pathlib import Path
+
+    from config.ini_config import BACKEND_DIR as BACKEND_PKG_DIR
+
+    repo_root = BACKEND_PKG_DIR.parent
+    docs_dir = repo_root / "docs"
+
+    name = Path(filename).name
+    if name != filename or ".." in filename or "\\" in filename:
+        return Response({"error": "Invalid filename."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if name == "README.md":
+        target = repo_root / name
+    else:
+        target = docs_dir / name
+    if not name.endswith(".md") or not target.exists():
+        return Response({"error": "Document not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        return Response({"filename": name, "content": target.read_text(encoding="utf-8")})
+    except Exception:
+        logger.exception("Failed to read doc %s", name)
+        return Response({"error": "Failed to read document."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="List email templates",
+    responses={200: inline_serializer("EmailTemplateList", fields={"templates": serializers.ListField(child=serializers.CharField())})},
+)
+@api_view(["GET"])
+def email_templates_list(request):
+    """List the available email template filenames."""
+    from apps.core.services.email_templates import list_templates
+
+    return Response({"templates": list_templates()})
+
+
+@extend_schema(
+    methods=["GET"],
+    summary="Read one email template",
+    responses={200: inline_serializer("EmailTemplateRead", fields={"filename": serializers.CharField(), "content": serializers.CharField()})},
+)
+@extend_schema(
+    methods=["PUT"],
+    summary="Save one email template",
+    request=inline_serializer("EmailTemplateWrite", fields={"content": serializers.CharField()}),
+    responses={200: inline_serializer("EmailTemplateSaved", fields={"filename": serializers.CharField(), "saved": serializers.BooleanField()})},
+)
+@api_view(["GET", "PUT"])
+def email_template_detail(request, filename):
+    """GET reads a template; PUT saves its content."""
+    from apps.core.services.email_templates import read_template, write_template
+
+    try:
+        if request.method == "GET":
+            content = read_template(filename)
+            return Response({"filename": filename, "content": content})
+        content = request.data.get("content", "")
+        write_template(filename, content)
+        return Response({"filename": filename, "saved": True})
+    except FileNotFoundError as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_404_NOT_FOUND)
+    except ValueError as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        logger.exception("Email template operation failed")
+        return Response(
+            {"error": "Failed to operate on template. See server logs."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

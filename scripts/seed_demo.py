@@ -1,7 +1,7 @@
 """
 Synora Bridge — demo seed script (standalone).
 
-Port of the original `scripts/seed_final.py` (Flask) to the Django stack,
+Port of the original `scripts/seed_final.py` (original) to the Django stack,
 kept OUT of the application on purpose: it is a demo/data tool, not needed in
 production.
 

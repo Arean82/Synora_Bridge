@@ -1,7 +1,7 @@
 """
 Connections domain viewsets.
 
-CRUD mirrors Flask `connection_controller.py`; `toggle` and `refresh` fetch
+CRUD mirrors original `connection_controller.py`; `toggle` and `refresh` fetch
 the spec from the connection URL. The mock server and spec-validation actions
 live in apps.pull (Phase 4) since they generate endpoints/schemas.
 """
@@ -103,3 +103,54 @@ class ConnectionViewSet(viewsets.ModelViewSet):
             conn.is_active = target_state
             conn.save(update_fields=["is_active"])
         return Response(self.get_serializer(conn).data)
+
+    @action(detail=False, methods=["post"])
+    def validate(self, request):
+        """Validate an OpenAPI/Swagger spec (port of original /connections/validate).
+
+        POST body:
+          source_type: 'url' | 'file' | 'paste'
+          url:         the spec URL when source_type == 'url'
+          content:     spec text for 'file'/'paste'
+          spec_auth_type / spec_auth_config / spec_custom_headers: optional
+                        dual-auth headers used only to fetch the spec.
+        Returns {success, title, api_version, spec_version, operation_count,
+                 schema_count} or {success: false, error}.
+        """
+        import base64
+        import json
+
+        from apps.connections.services.openapi_validator import OpenAPIValidator
+
+        data = request.data or {}
+        source_type = data.get("source_type")
+        content = data.get("content")
+        url = data.get("url")
+
+        auth_headers = dict(data.get("spec_custom_headers") or {})
+        auth_type = data.get("spec_auth_type", "none")
+        auth_config = data.get("spec_auth_config") or {}
+
+        if auth_type == "bearer" and auth_config.get("token"):
+            auth_headers["Authorization"] = f"Bearer {auth_config['token']}"
+        elif auth_type == "api_key" and auth_config.get("header_name") and auth_config.get("header_value"):
+            auth_headers[auth_config["header_name"]] = auth_config["header_value"]
+        elif auth_type == "basic" and auth_config.get("username") and auth_config.get("password"):
+            creds = f"{auth_config['username']}:{auth_config['password']}"
+            auth_headers["Authorization"] = "Basic " + base64.b64encode(creds.encode()).decode()
+
+        validator = OpenAPIValidator()
+
+        if source_type == "url":
+            result = validator.process_and_validate(url=url, auth_headers=auth_headers)
+        elif source_type in ("file", "paste"):
+            result = validator.process_and_validate(content=content)
+        else:
+            return Response(
+                {"success": False, "error": "Invalid source_type specified"},
+                status=400,
+            )
+
+        if result.get("success"):
+            return Response(result)
+        return Response(result, status=400)

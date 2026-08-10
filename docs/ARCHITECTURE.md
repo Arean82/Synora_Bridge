@@ -47,15 +47,19 @@ URLs compose in `config/api_router.py` — adding a feature = register its route
 ## Dynamic endpoints
 
 - **Pull REST**: `/api/v1/bridge/pull/<slug>/<dest>/` — executed on demand; OpenAPI spec generated on the fly (`/spec?version=2.0|3.0.3|3.1.0|3.2.0`), Swagger UI at `/docs`.
-- **Pull GraphQL**: `/api/v1/bridge/graphql/<slug>/` — Strawberry schema built per request via `strawberry.tools.create_type` from field mappings (nested objects/lists), GraphiQL on GET, execution on POST.
+- **Pull GraphQL**: `/api/v1/bridge/graphql/<slug>/<dest>/` — Strawberry schema built per request via `strawberry.tools.create_type` from field mappings (nested objects/lists), GraphiQL on GET, execution on POST (bare slug redirects to the first destination).
 - **Mock server**: `/api/v1/mock/<connection_id>/<path>` — serves spec examples with `{param}` path matching.
+- **Per-connection docs**: `/api/v1/docs/<id>/` (Swagger UI from the stored spec) and `/api/v1/graphql/test/<id>/` (GraphiQL for GraphQL connections).
+- **Validation utilities**: `/api/v1/connections/validate/` (SSRF-hardened spec validation), `/api/v1/test_mapping/` (field-mapping preview), `/api/v1/bridge/graphql_introspect/`.
+- **System Configuration**: `GET/PUT /api/v1/config/` reads/writes the entire `config.ini` (typed values, restart-required detection) for the Settings GUI.
 
 ## Security model
 
 - AES-256-GCM at-rest encryption for tokens/credentials (`apps/core/fields.py`, marker-prefixed `$e$` ciphertext, prod-enforces `ENCRYPTION_KEY`).
-- Per-template bearer auth on pull endpoints when `client_credentials.token` is set.
-- SSRF protection + 5 MB cap in `openapi_validator.py`.
-- Rate limiting (django-ratelimit, Redis) on pull endpoints — config.ini `[RateLimit]`.
+- Per-template bearer auth on **data execution** only (pull REST data + GraphQL POST); spec/docs/playground pages are public (original parity).
+- SSRF protection (resolved-IP + private-CIDR blocking) + 5 MB cap + external-`$ref` rejection in `openapi_validator.py`.
+- Rate limiting (django-ratelimit, Redis, fail-open on cache outage) on pull endpoints — config.ini `[RateLimit]`.
+- Email-template API rejects path traversal (resolve + containment check).
 - Fail-fast config validation: invalid timezone / missing prod keys abort startup with clear messages.
 
 ## Observability

@@ -1,7 +1,7 @@
 """
 Pull mode views — auto-generated REST + GraphQL endpoints and the mock server.
 
-Ports the Flask pull controllers (pull_rest, pull_graphql, mock_server) onto
+Ports the original pull controllers (pull_rest, pull_graphql, mock_server) onto
 DRF/plain Django views with the approved scale items:
 - per-template bearer auth (#9): client_credentials.token must match
   the Authorization: Bearer header when configured
@@ -11,9 +11,13 @@ DRF/plain Django views with the approved scale items:
 """
 import json
 import logging
+import functools
 
+import redis.exceptions
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
 
@@ -63,7 +67,12 @@ def _get_cached(slug, dest):
         return None
     from django.core.cache import cache
 
-    return cache.get(_pull_cache_key(slug, dest))
+    try:
+        return cache.get(_pull_cache_key(slug, dest))
+    except Exception:
+        # Fail-open: a Redis outage must not break pull endpoints.
+        logger.warning("Pull cache read failed (Redis down?) — serving fresh.", exc_info=True)
+        return None
 
 
 def _set_cached(slug, dest, value) -> None:
@@ -71,7 +80,11 @@ def _set_cached(slug, dest, value) -> None:
         return
     from django.core.cache import cache
 
-    cache.set(_pull_cache_key(slug, dest), value, timeout=settings.PULL_CACHE_TTL_SECONDS)  # type: ignore[arg-type]
+    try:
+        cache.set(_pull_cache_key(slug, dest), value, timeout=settings.PULL_CACHE_TTL_SECONDS)  # type: ignore[arg-type]
+    except Exception:
+        # Fail-open: cache write failure is non-fatal.
+        logger.warning("Pull cache write failed (Redis down?) — skipping cache.", exc_info=True)
 
 
 def _execute_pull(template, dest_slug=None):
@@ -104,6 +117,29 @@ def _rate_limit_config(group=None, request=None):
     return f"{settings.RATE_LIMIT_RATE}/{settings.RATE_LIMIT_PERIOD}"
 
 
+def safe_ratelimit(*args, **kwargs):
+    """Rate-limit a view but FAIL OPEN when the cache (Redis) is unavailable.
+
+    django-ratelimit raises ConnectionError when its backing cache is down;
+    that must never take pull endpoints down with it. On cache errors the
+    view runs un-limited (degraded, not broken).
+    """
+    def _decorator(view_func):
+        wrapped = ratelimit(*args, **kwargs)(view_func)
+
+        @functools.wraps(view_func)
+        def _handler(request, *view_args, **view_kwargs):
+            try:
+                return wrapped(request, *view_args, **view_kwargs)
+            except (redis.exceptions.RedisError, ConnectionError):
+                logger.warning("Rate-limit cache unavailable — serving un-limited.", exc_info=True)
+                return view_func(request, *view_args, **view_kwargs)
+
+        return _handler
+
+    return _decorator
+
+
 def _maybe_rate_limited(request):
     """If rate limiting is enabled and the request was limited, return a 429."""
     if settings.RATE_LIMIT_ENABLED and getattr(request, "limited", False):
@@ -117,7 +153,8 @@ def _maybe_rate_limited(request):
 # ---------------------------------------------------------------------------
 # REST pull
 # ---------------------------------------------------------------------------
-@ratelimit(key="ip", rate=_rate_limit_config, block=False)
+@csrf_exempt
+@safe_ratelimit(key="ip", rate=_rate_limit_config, block=False)
 @require_http_methods(["GET", "POST", "PUT", "PATCH", "DELETE"])
 @api_error_response
 def pull_rest_endpoint(request, slug, dest_slug):
@@ -173,10 +210,11 @@ def pull_rest_docs(request, slug):
 # ---------------------------------------------------------------------------
 # GraphQL pull
 # ---------------------------------------------------------------------------
-@ratelimit(key="ip", rate=_rate_limit_config, block=False)
+@csrf_exempt
+@safe_ratelimit(key="ip", rate=_rate_limit_config, block=False)
 @require_http_methods(["GET", "POST"])
 @api_error_response
-def pull_graphql_endpoint(request, slug):
+def pull_graphql_endpoint(request, slug, dest_slug=None):
     """Serve the auto-generated GraphQL endpoint (playground + execution)."""
     limited = _maybe_rate_limited(request)
     if limited:
@@ -186,12 +224,24 @@ def pull_graphql_endpoint(request, slug):
     if not template:
         raise APIError("Template not found.", 404)
 
+    # Without a destination slug, redirect to the first destination (original behavior).
+    if dest_slug is None:
+        from apps.pull.services.strawberry_dynamic import _resolve_destination
+
+        dest = _resolve_destination(template)
+        first_slug = _dest_slug(dest.get("name"))
+        return redirect(
+            f"/api/v1/bridge/graphql/{slug}/{first_slug}/"
+        )
+
+    if request.method == "GET":
+        # Playground is public (original parity): only data execution is authed.
+        return HttpResponse(get_graphiql_html(template.name), content_type="text/html")
+
+    # POST = data execution → enforce per-template bearer auth.
     auth_error = _check_client_auth(template, request)
     if auth_error:
         return auth_error
-
-    if request.method == "GET":
-        return HttpResponse(get_graphiql_html(template.name), content_type="text/html")
 
     try:
         body = json.loads(request.body or b"{}")
@@ -202,21 +252,18 @@ def pull_graphql_endpoint(request, slug):
     if not query:
         raise APIError("GraphQL query is required.", 400)
 
-    cached = _get_cached(slug, "graphql")
-    if cached is not None and request.method == "POST" and body.get("operationName") == "IntrospectionQuery":
-        cached = None  # never cache introspection
-
+    cached = _get_cached(f"{slug}:{dest_slug}", "graphql")
     if cached is not None and not body.get("variables"):
         return JsonResponse(cached)
 
-    data, errors = execute_graphql(template, query, body.get("variables"))
+    data, errors = execute_graphql(template, query, body.get("variables"), dest_slug=dest_slug)
     response: dict = {"data": data}
     if errors:
         response["errors"] = [
             {"message": str(e), "locations": getattr(e, "locations", None)} for e in errors
         ]
     if not errors:
-        _set_cached(slug, "graphql", response)
+        _set_cached(f"{slug}:{dest_slug}", "graphql", response)
     return JsonResponse(response)
 
 
@@ -249,12 +296,184 @@ def get_graphiql_html(title):
 
 
 # ---------------------------------------------------------------------------
+# Engine helpers: GraphQL introspection + field-mapping test (original parity)
+# ---------------------------------------------------------------------------
+@api_error_response
+@csrf_exempt
+@require_http_methods(["POST"])
+def graphql_introspect(request):
+    """Introspect an external GraphQL endpoint (port of original /graphql_introspect).
+
+    POST {url, auth_token} → returns the introspection schema JSON.
+    """
+    import json
+
+    from apps.pull.services.graphql import introspect_graphql_endpoint
+
+    try:
+        body = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        raise APIError("Invalid JSON body.", 400)
+
+    url = body.get("url")
+    if not url:
+        raise APIError("URL is required.", 400)
+
+    try:
+        schema = introspect_graphql_endpoint(url, body.get("auth_token"))
+        return JsonResponse(schema)
+    except Exception as exc:
+        raise APIError(str(exc), 500)
+
+
+@api_error_response
+@csrf_exempt
+@require_http_methods(["POST"])
+def test_mapping(request):
+    """Preview the nested payload a field mapping produces (original parity).
+
+    POST {mapping: [{source, target}]} → {sample_payload}. Values are shown as
+    <Sample source> placeholders; the structure mirrors build_nested_payload.
+    """
+    import json
+
+    from apps.core.services.data_transform import build_nested_payload
+
+    try:
+        body = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        raise APIError("Invalid JSON body.", 400)
+
+    mapping = body.get("mapping", [])
+    if not isinstance(mapping, list):
+        raise APIError("mapping must be a list.", 400)
+
+    # Build a placeholder source dict so the shape is visible without real data.
+    sample_source = {}
+    for item in mapping:
+        if isinstance(item, dict) and item.get("source"):
+            sample_source[item["source"]] = f"<Sample {item['source']}>"
+
+    payload = build_nested_payload(mapping, sample_source)
+    return JsonResponse({"sample_payload": payload})
+
+
+# ---------------------------------------------------------------------------
+# Per-connection docs + GraphQL test pages (original /docs/<id> + /graphql/test/<id>)
+# ---------------------------------------------------------------------------
+@api_error_response
+@require_GET
+def connection_docs(request, connection_id):
+    """Render Swagger UI for a connection's stored spec (original /docs/<id>)."""
+    from apps.connections.models import Connection
+
+    conn = Connection.objects.filter(pk=connection_id).first()
+    if not conn:
+        raise APIError("Connection not found.", 404)
+
+    spec_text = conn.json_content or "{}"
+    spec_url = f"/api/v1/connections/{conn.pk}/"
+    return HttpResponse(
+        _connection_swagger_html(conn.name, spec_text, spec_url),
+        content_type="text/html",
+    )
+
+
+@api_error_response
+@require_GET
+def connection_graphql_test(request, connection_id):
+    """Render a GraphiQL playground for a GraphQL connection (original parity)."""
+    from apps.connections.models import Connection
+
+    conn = Connection.objects.filter(pk=connection_id).first()
+    if not conn:
+        raise APIError("Connection not found.", 404)
+    if conn.connection_type != "graphql":
+        raise APIError("Not a GraphQL connection.", 400)
+    return HttpResponse(
+        _graphiql_html(conn.name, conn.url or ""),
+        content_type="text/html",
+    )
+
+
+def _connection_swagger_html(name, spec_text, spec_url):
+    """Swagger UI page rendering a connection's stored spec (no CDN fallback
+    needed beyond unpkg — same as the original)."""
+    import json
+
+    try:
+        parsed = json.loads(spec_text)
+        embedded = json.dumps(parsed)
+    except json.JSONDecodeError:
+        embedded = "null"
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>Swagger UI - {name}</title>
+      <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+      <style>html {{ box-sizing: border-box; overflow-y: scroll; }} body {{ margin: 0; background: #fafafa; }} .topbar {{ display: none !important; }}</style>
+    </head>
+    <body>
+      <div id="swagger-ui"></div>
+      <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+      <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js" crossorigin></script>
+      <script>
+        const embedded = {embedded};
+        if (!embedded || !embedded.swagger && !embedded.openapi) {{
+          document.getElementById('swagger-ui').innerHTML =
+            "<h2 style='color:orange;text-align:center;padding:20px;'>No valid API data found for this connection.</h2>";
+        }} else {{
+          window.ui = SwaggerUIBundle({{
+            spec: embedded,
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+            layout: "BaseLayout",
+          }});
+        }}
+      </script>
+    </body>
+    </html>
+    """
+
+
+def _graphiql_html(title, endpoint_url):
+    """GraphiQL playground page (used for per-connection GraphQL test)."""
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>GraphiQL - {title}</title>
+      <style>body{{height:100vh;margin:0;overflow:hidden}}#graphiql{{height:100vh}}</style>
+      <link rel="stylesheet" href="https://unpkg.com/graphiql@3/graphiql.min.css" />
+    </head>
+    <body>
+      <div id="graphiql">Loading GraphiQL...</div>
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+      <script crossorigin src="https://unpkg.com/graphiql@3/graphiql.min.js"></script>
+      <script>
+        const root = ReactDOM.createRoot(document.getElementById('graphiql'));
+        root.render(React.createElement(GraphiQL, {{
+          fetcher: GraphiQL.createFetcher({{ url: {json.dumps(endpoint_url or '')} }}),
+          defaultQuery: '{{ data {{ }} }}',
+        }}));
+      </script>
+    </body>
+    </html>
+    """
+
+
+# ---------------------------------------------------------------------------
 # Mock server
 # ---------------------------------------------------------------------------
 @require_GET
 @api_error_response
 def mock_server(request, connection_id, path):
-    """Serve example JSON from a connection's OpenAPI spec (Flask parity).
+    """Serve example JSON from a connection's OpenAPI spec (original parity).
 
     Handles {param} path segments and Swagger 2.0 `examples` / OpenAPI 3
     `content.example(s)` response values.

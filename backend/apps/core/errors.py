@@ -16,8 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 def api_error_response(view_func):
-    """Wrap a Django view: return APIError / Http404 as JSON responses."""
+    """Wrap a Django view: return APIError / Http404 as JSON responses.
 
+    Uses functools.wraps so attributes on the inner view (e.g. csrf_exempt,
+    ratelimit flags) propagate to the wrapper — the CSRF middleware checks
+    the final view object for csrf_exempt=True.
+    """
+    import functools
+
+    @functools.wraps(view_func)
     def _wrapped(request, *args, **kwargs):
         try:
             return view_func(request, *args, **kwargs)
@@ -36,5 +43,4 @@ def api_error_response(view_func):
                 {"status": "error", "message": "Internal server error.", "code": 500}, status=500
             )
 
-    _wrapped.__name__ = view_func.__name__
     return _wrapped

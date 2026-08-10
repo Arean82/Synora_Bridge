@@ -1,8 +1,8 @@
-"""
+﻿"""
 Base settings shared by all environments.
 
 Runtime configuration comes from `backend/config.ini` (via
-`config.ini_config.load_ini()`), mirroring the original Flask app. Environment
+`config.ini_config.load_ini()`), mirroring the original original app. Environment
 variables act only as an optional override for secrets (SECRET_KEY,
 ENCRYPTION_KEY) so credentials never need to live in the config file.
 """
@@ -45,8 +45,8 @@ import configparser  # noqa: E402  (needed for exception classes above)
 # ---------------------------------------------------------------------------
 # Core Django
 # ---------------------------------------------------------------------------
-# Environment flag: development → SQLite, production → PostgreSQL
-# (same semantics as the original Flask config.py).
+# Environment flag: development â†’ SQLite, production â†’ PostgreSQL
+# (same semantics as the original original config.py).
 ENVIRONMENT = ini_get("Server", "environment", "development").lower()
 
 # Secret keys: prefer env, fall back to config.ini.
@@ -65,7 +65,7 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
-# Application definition — modular apps registered per feature domain.
+# Application definition â€” modular apps registered per feature domain.
 DJANGO_APPS = [
     "daphne",  # must come before django.contrib.staticfiles for ASGI serving
     "django.contrib.admin",
@@ -82,6 +82,10 @@ THIRD_PARTY_APPS = [
     "django_celery_beat",
     "drf_spectacular",
     "corsheaders",
+    # Django admin theming — Jazzmin (Black + Material skins, theme dropdown).
+    "jazzmin",
+    "admin_black",
+    "admin_material",
 ]
 
 LOCAL_APPS = [
@@ -98,7 +102,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Serve /static/ under ASGI (daphne) — needed by DRF browsable API + admin.
+    # Serve /static/ under ASGI (daphne) â€” needed by DRF browsable API + admin.
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -130,9 +134,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — driven by [Server] environment:
-#   development → SQLite ([SQLITE] path/database)
-#   production  → PostgreSQL ([POSTGRES] host/port/database/username/password)
+# Database â€” driven by [Server] environment:
+#   development â†’ SQLite ([SQLITE] path/database)
+#   production  â†’ PostgreSQL ([POSTGRES] host/port/database/username/password)
 # ---------------------------------------------------------------------------
 if ENVIRONMENT == "production":
     pool_max_age = ini_int("DatabasePool", "max_age_seconds", 60)
@@ -185,7 +189,7 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # ---------------------------------------------------------------------------
-# Redis / Memurai — channel layer + Celery broker.
+# Redis / Memurai â€” channel layer + Celery broker.
 # ---------------------------------------------------------------------------
 REDIS_URL = ini_get("REDIS", "url", "redis://localhost:6379/0")
 
@@ -223,7 +227,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ],
-    # The original Flask app had no user accounts on the management API; the
+    # The original original app had no user accounts on the management API; the
     # Nuxt frontend must be able to manage templates/jobs/connections without
     # a login flow. Pull endpoints enforce per-template bearer auth instead
     # (see apps.pull). Django admin remains session-guarded.
@@ -240,7 +244,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
 }
 
-# drf-spectacular — generates the OpenAPI schema for hey-api / dart-dio clients.
+# drf-spectacular â€” generates the OpenAPI schema for hey-api / dart-dio clients.
 SPECTACULAR_SETTINGS = {
     "TITLE": "Synora Bridge API",
     "DESCRIPTION": (
@@ -284,6 +288,65 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LOGIN_URL = "admin:login"
 LOGIN_REDIRECT_URL = "/"
+
+# ---------------------------------------------------------------------------
+# Django admin theming (Jazzmin + Black/Material skins)
+# ---------------------------------------------------------------------------
+JAZZMIN_SETTINGS = {
+    "site_title": "Synora Bridge Admin",
+    "site_header": "Synora Bridge",
+    "site_brand": "Synora Bridge",
+    "welcome_sign": "Synora Bridge Administration",
+    "copyright": "Synora Bridge",
+    "search_model": ["configs.Template", "connections.Connection", "jobs.Job"],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    # Theme dropdown — Black + Material selectable from the admin UI.
+    "show_ui_builder": True,
+    "icons": {
+        "configs.Template": "fas fa-sitemap",
+        "connections.Connection": "fas fa-link",
+        "jobs.Job": "fas fa-clock",
+        "jobs.JobLog": "fas fa-list",
+        "core.AuditLog": "fas fa-clipboard-list",
+        "core.AppSetting": "fas fa-cog",
+    },
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+}
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": False,
+    "accent": "accent-primary",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": "darkly",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Internationalization & timezone
@@ -383,13 +446,13 @@ if PULL_CACHE_ENABLED:
     }
 
 # ---------------------------------------------------------------------------
-# Database pooling (config.ini [DatabasePool]) — CONN_MAX_AGE is applied in
+# Database pooling (config.ini [DatabasePool]) â€” CONN_MAX_AGE is applied in
 # the DATABASES block above; PgBouncer config ships in deploy/pgbouncer.ini.
 # ---------------------------------------------------------------------------
 DATABASE_POOL_ENABLED = ini_bool("DatabasePool", "enabled", False)
 
 # ---------------------------------------------------------------------------
-# Reverse proxy (config.ini [ReverseProxy]) — nginx config ships in
+# Reverse proxy (config.ini [ReverseProxy]) â€” nginx config ships in
 # deploy/nginx.conf; the app only needs to trust the proxy headers.
 # ---------------------------------------------------------------------------
 REVERSE_PROXY_ENABLED = ini_bool("ReverseProxy", "enabled", False)

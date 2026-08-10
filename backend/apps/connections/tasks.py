@@ -1,7 +1,7 @@
-"""
-Connections domain Celery tasks — background spec refresh.
+﻿"""
+Connections domain Celery tasks â€” background spec refresh.
 
-Ports Flask `bridge_app/services/swagger_utils.py::update_swagger_connections`:
+Ports original `bridge_app/services/swagger_utils.py::update_swagger_connections`:
 periodically re-fetch Swagger/OpenAPI JSON for remote connections, respecting
 each connection's individual sync_schedule.
 """
