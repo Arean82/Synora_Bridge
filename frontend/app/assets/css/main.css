@@ -1,0 +1,17 @@
+/* Synora Bridge — Tailwind CSS v4 entry + base styles. */
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+/* PrimeVue theme overrides stay minimal — Nuxt components are preferred. */

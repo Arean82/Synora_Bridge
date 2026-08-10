@@ -1,0 +1,1826 @@
+openapi: 3.0.3
+info:
+  title: Synora Bridge API
+  version: 1.0.0
+  description: 'Universal API bridge: scheduled multi-source push, pull REST with
+    dynamic OpenAPI specs, pull GraphQL with a dynamic Strawberry schema, and a Swagger-driven
+    mock server.'
+paths:
+  /api/v1/audit-logs/:
+    get:
+      operationId: api_v1_audit_logs_list
+      description: Read-only audit trail, filterable by mode/template/status.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditLogList'
+          description: ''
+  /api/v1/audit-logs/{id}/:
+    get:
+      operationId: api_v1_audit_logs_retrieve
+      description: Read-only audit trail, filterable by mode/template/status.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this audit log.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLog'
+          description: ''
+  /api/v1/connections/:
+    get:
+      operationId: api_v1_connections_list
+      description: CRUD for API connections (Swagger/OpenAPI specs).
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConnectionList'
+          description: ''
+    post:
+      operationId: api_v1_connections_create
+      description: CRUD for API connections (Swagger/OpenAPI specs).
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/connections/{id}/:
+    get:
+      operationId: api_v1_connections_retrieve
+      description: CRUD for API connections (Swagger/OpenAPI specs).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this connection.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+    put:
+      operationId: api_v1_connections_update
+      description: CRUD for API connections (Swagger/OpenAPI specs).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this connection.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+    patch:
+      operationId: api_v1_connections_partial_update
+      description: CRUD for API connections (Swagger/OpenAPI specs).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this connection.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedConnectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedConnectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedConnectionRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+    delete:
+      operationId: api_v1_connections_destroy
+      description: CRUD for API connections (Swagger/OpenAPI specs).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this connection.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/connections/{id}/refresh/:
+    post:
+      operationId: api_v1_connections_refresh_create
+      description: Re-fetch the spec from the connection URL.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this connection.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/connections/{id}/toggle/:
+    post:
+      operationId: api_v1_connections_toggle_create
+      description: Enable/disable a connection; enabling re-validates the spec.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this connection.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/failed-payloads/:
+    get:
+      operationId: api_v1_failed_payloads_list
+      description: Read-only failed payloads, filterable by ?job=<id> and ?template=<id>.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFailedPayloadList'
+          description: ''
+  /api/v1/failed-payloads/{id}/:
+    get:
+      operationId: api_v1_failed_payloads_retrieve
+      description: Read-only failed payloads, filterable by ?job=<id> and ?template=<id>.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this failed payload.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailedPayload'
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: api_v1_health_retrieve
+      description: Legacy aggregated health endpoint.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/v1/health/live/:
+    get:
+      operationId: api_v1_health_live_retrieve
+      description: Liveness probe — the process is up.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liveness'
+          description: ''
+  /api/v1/health/ready/:
+    get:
+      operationId: api_v1_health_ready_retrieve
+      description: Readiness probe — DB connectivity check.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+          description: ''
+  /api/v1/job-logs/:
+    get:
+      operationId: api_v1_job_logs_list
+      description: Read-only job execution logs, filterable by ?job=<id>.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobLogList'
+          description: ''
+  /api/v1/job-logs/{id}/:
+    get:
+      operationId: api_v1_job_logs_retrieve
+      description: Read-only job execution logs, filterable by ?job=<id>.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this job log.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobLog'
+          description: ''
+  /api/v1/jobs/:
+    get:
+      operationId: api_v1_jobs_list
+      description: CRUD for scheduled jobs, plus start/stop toggling.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobList'
+          description: ''
+    post:
+      operationId: api_v1_jobs_create
+      description: CRUD for scheduled jobs, plus start/stop toggling.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+  /api/v1/jobs/{id}/:
+    get:
+      operationId: api_v1_jobs_retrieve
+      description: CRUD for scheduled jobs, plus start/stop toggling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this job.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+    put:
+      operationId: api_v1_jobs_update
+      description: CRUD for scheduled jobs, plus start/stop toggling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this job.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+    patch:
+      operationId: api_v1_jobs_partial_update
+      description: CRUD for scheduled jobs, plus start/stop toggling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this job.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedJobRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+    delete:
+      operationId: api_v1_jobs_destroy
+      description: CRUD for scheduled jobs, plus start/stop toggling.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this job.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/jobs/{id}/toggle/:
+    post:
+      operationId: api_v1_jobs_toggle_create
+      description: Start or stop a job (is_active flip + Celery beat schedule sync).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this job.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+  /api/v1/jobs/bulk_toggle/:
+    post:
+      operationId: api_v1_jobs_bulk_toggle_create
+      description: |-
+        Start/stop multiple jobs: POST {action: start|stop, job_ids: [..]}.
+
+        Uses per-object save() (not QuerySet.update) so the post_save signal
+        keeps django-celery-beat in sync for every toggled job.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+          description: ''
+  /api/v1/metrics/:
+    get:
+      operationId: api_v1_metrics_retrieve
+      description: Aggregated counters (templates/jobs/logs) for monitoring agents.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metrics'
+          description: ''
+  /api/v1/settings/:
+    get:
+      operationId: api_v1_settings_list
+      description: |-
+        Key/value runtime settings (UI theme, layout, date format).
+
+        Lookup by primary key (ids are stable); filter the list with ?key=<name>
+        (keys may contain dots, which the default router regex would reject).
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppSettingList'
+          description: ''
+    post:
+      operationId: api_v1_settings_create
+      description: |-
+        Key/value runtime settings (UI theme, layout, date format).
+
+        Lookup by primary key (ids are stable); filter the list with ?key=<name>
+        (keys may contain dots, which the default router regex would reject).
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppSettingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppSettingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppSettingRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSetting'
+          description: ''
+  /api/v1/settings/{id}/:
+    get:
+      operationId: api_v1_settings_retrieve
+      description: |-
+        Key/value runtime settings (UI theme, layout, date format).
+
+        Lookup by primary key (ids are stable); filter the list with ?key=<name>
+        (keys may contain dots, which the default router regex would reject).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this app setting.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSetting'
+          description: ''
+    put:
+      operationId: api_v1_settings_update
+      description: |-
+        Key/value runtime settings (UI theme, layout, date format).
+
+        Lookup by primary key (ids are stable); filter the list with ?key=<name>
+        (keys may contain dots, which the default router regex would reject).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this app setting.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppSettingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppSettingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppSettingRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSetting'
+          description: ''
+    patch:
+      operationId: api_v1_settings_partial_update
+      description: |-
+        Key/value runtime settings (UI theme, layout, date format).
+
+        Lookup by primary key (ids are stable); filter the list with ?key=<name>
+        (keys may contain dots, which the default router regex would reject).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this app setting.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAppSettingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAppSettingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAppSettingRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppSetting'
+          description: ''
+    delete:
+      operationId: api_v1_settings_destroy
+      description: |-
+        Key/value runtime settings (UI theme, layout, date format).
+
+        Lookup by primary key (ids are stable); filter the list with ?key=<name>
+        (keys may contain dots, which the default router regex would reject).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this app setting.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/templates/:
+    get:
+      operationId: api_v1_templates_list
+      description: CRUD for bridge execution templates.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTemplateList'
+          description: ''
+    post:
+      operationId: api_v1_templates_create
+      description: CRUD for bridge execution templates.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+  /api/v1/templates/{id}/:
+    get:
+      operationId: api_v1_templates_retrieve
+      description: CRUD for bridge execution templates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Bridge Template.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+    put:
+      operationId: api_v1_templates_update
+      description: CRUD for bridge execution templates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Bridge Template.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+    patch:
+      operationId: api_v1_templates_partial_update
+      description: CRUD for bridge execution templates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Bridge Template.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTemplateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTemplateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTemplateRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+    delete:
+      operationId: api_v1_templates_destroy
+      description: CRUD for bridge execution templates.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Bridge Template.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AppSetting:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        key:
+          type: string
+          maxLength: 100
+        value: {}
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - key
+      - updated_at
+    AppSettingRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 100
+        value: {}
+      required:
+      - key
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        transaction_id:
+          type: string
+          format: uuid
+          readOnly: true
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ModeEnum'
+          readOnly: true
+        caller:
+          type: string
+          readOnly: true
+        bytes_transferred:
+          type: integer
+          readOnly: true
+        record_count:
+          type: integer
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        payload_json:
+          readOnly: true
+          nullable: true
+        endpoint:
+          type: string
+          readOnly: true
+          nullable: true
+        template:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - bytes_transferred
+      - caller
+      - endpoint
+      - id
+      - mode
+      - payload_json
+      - record_count
+      - status
+      - template
+      - timestamp
+      - transaction_id
+    Connection:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        url:
+          type: string
+          nullable: true
+          maxLength: 500
+        json_content:
+          type: string
+          nullable: true
+        is_local_file:
+          type: boolean
+        local_file_path:
+          type: string
+          nullable: true
+          maxLength: 500
+        update_interval_hours:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+        connection_type:
+          $ref: '#/components/schemas/ConnectionTypeEnum'
+        sync_schedule:
+          type: string
+          nullable: true
+          maxLength: 100
+        environments: {}
+        auth_type:
+          $ref: '#/components/schemas/ConnectionAuthTypeEnum'
+        auth_config:
+          nullable: true
+        custom_headers:
+          nullable: true
+        schema_source:
+          $ref: '#/components/schemas/SchemaSourceEnum'
+        spec_auth_type:
+          $ref: '#/components/schemas/ConnectionAuthTypeEnum'
+        spec_auth_config:
+          nullable: true
+        spec_custom_headers:
+          nullable: true
+        auth_token:
+          type: string
+          nullable: true
+        last_updated:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - last_updated
+      - name
+    ConnectionAuthTypeEnum:
+      enum:
+      - none
+      - bearer
+      - api_key
+      - basic
+      type: string
+      description: |-
+        * `none` - None
+        * `bearer` - Bearer Token
+        * `api_key` - API Key
+        * `basic` - Basic Auth
+    ConnectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        url:
+          type: string
+          nullable: true
+          maxLength: 500
+        json_content:
+          type: string
+          nullable: true
+        is_local_file:
+          type: boolean
+        local_file_path:
+          type: string
+          nullable: true
+          maxLength: 500
+        update_interval_hours:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+        connection_type:
+          $ref: '#/components/schemas/ConnectionTypeEnum'
+        sync_schedule:
+          type: string
+          nullable: true
+          maxLength: 100
+        environments: {}
+        auth_type:
+          $ref: '#/components/schemas/ConnectionAuthTypeEnum'
+        auth_config:
+          nullable: true
+        custom_headers:
+          nullable: true
+        schema_source:
+          $ref: '#/components/schemas/SchemaSourceEnum'
+        spec_auth_type:
+          $ref: '#/components/schemas/ConnectionAuthTypeEnum'
+        spec_auth_config:
+          nullable: true
+        spec_custom_headers:
+          nullable: true
+        auth_token:
+          type: string
+          nullable: true
+      required:
+      - name
+    ConnectionTypeEnum:
+      enum:
+      - rest
+      - graphql
+      type: string
+      description: |-
+        * `rest` - REST
+        * `graphql` - GraphQL
+    ExecutionModeEnum:
+      enum:
+      - push
+      - pull_rest
+      - pull_graphql
+      type: string
+      description: |-
+        * `push` - Push
+        * `pull_rest` - Pull REST
+        * `pull_graphql` - Pull GraphQL
+    FailedPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        job:
+          type: integer
+          readOnly: true
+        template:
+          type: integer
+          readOnly: true
+        payload_json:
+          nullable: true
+        error_message:
+          type: string
+          readOnly: true
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - error_message
+      - id
+      - job
+      - template
+      - timestamp
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        template:
+          type: integer
+        template_name:
+          type: string
+          readOnly: true
+        template_detail:
+          allOf:
+          - $ref: '#/components/schemas/Template'
+          readOnly: true
+        schedule_interval:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+        last_run:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_status:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - last_run
+      - last_status
+      - template
+      - template_detail
+      - template_name
+      - updated_at
+    JobLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        job:
+          type: integer
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        http_status:
+          type: integer
+          readOnly: true
+          nullable: true
+        error_message:
+          type: string
+          readOnly: true
+          nullable: true
+        payload_json:
+          nullable: true
+      required:
+      - error_message
+      - http_status
+      - id
+      - job
+      - status
+      - timestamp
+    JobRequest:
+      type: object
+      properties:
+        template:
+          type: integer
+        schedule_interval:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+      required:
+      - template
+    Liveness:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    Metrics:
+      type: object
+      properties:
+        templates: {}
+        jobs: {}
+        logs: {}
+      required:
+      - jobs
+      - logs
+      - templates
+    ModeEnum:
+      enum:
+      - PUSH
+      - PULL_REST
+      - PULL_GRAPHQL
+      - WEBSOCKET
+      type: string
+      description: |-
+        * `PUSH` - Push
+        * `PULL_REST` - Pull REST
+        * `PULL_GRAPHQL` - Pull GraphQL
+        * `WEBSOCKET` - WebSocket
+    PaginatedAppSettingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppSetting'
+    PaginatedAuditLogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+    PaginatedConnectionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
+    PaginatedFailedPayloadList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailedPayload'
+    PaginatedJobList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+    PaginatedJobLogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobLog'
+    PaginatedTemplateList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+    PatchedAppSettingRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 100
+        value: {}
+    PatchedConnectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        url:
+          type: string
+          nullable: true
+          maxLength: 500
+        json_content:
+          type: string
+          nullable: true
+        is_local_file:
+          type: boolean
+        local_file_path:
+          type: string
+          nullable: true
+          maxLength: 500
+        update_interval_hours:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+        connection_type:
+          $ref: '#/components/schemas/ConnectionTypeEnum'
+        sync_schedule:
+          type: string
+          nullable: true
+          maxLength: 100
+        environments: {}
+        auth_type:
+          $ref: '#/components/schemas/ConnectionAuthTypeEnum'
+        auth_config:
+          nullable: true
+        custom_headers:
+          nullable: true
+        schema_source:
+          $ref: '#/components/schemas/SchemaSourceEnum'
+        spec_auth_type:
+          $ref: '#/components/schemas/ConnectionAuthTypeEnum'
+        spec_auth_config:
+          nullable: true
+        spec_custom_headers:
+          nullable: true
+        auth_token:
+          type: string
+          nullable: true
+    PatchedJobRequest:
+      type: object
+      properties:
+        template:
+          type: integer
+        schedule_interval:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        is_active:
+          type: boolean
+    PatchedTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        execution_mode:
+          $ref: '#/components/schemas/ExecutionModeEnum'
+        pull_method:
+          type: string
+          minLength: 1
+          maxLength: 10
+        partner_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        partner_auth_token:
+          type: string
+          nullable: true
+        sources: {}
+        client_name:
+          type: string
+          nullable: true
+          maxLength: 100
+        client_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        client_auth_type:
+          type: string
+          minLength: 1
+          maxLength: 50
+        client_credentials: {}
+        destinations: {}
+    Readiness:
+      type: object
+      properties:
+        status:
+          type: string
+        database:
+          type: string
+      required:
+      - status
+    SchemaSourceEnum:
+      enum:
+      - introspection
+      - upload
+      type: string
+      description: |-
+        * `introspection` - Introspection
+        * `upload` - Upload
+    StatusEnum:
+      enum:
+      - SUCCESS
+      - FAILED
+      type: string
+      description: |-
+        * `SUCCESS` - Success
+        * `FAILED` - Failed
+    Template:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        slug:
+          type: string
+          readOnly: true
+        execution_mode:
+          $ref: '#/components/schemas/ExecutionModeEnum'
+        pull_method:
+          type: string
+          maxLength: 10
+        partner_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        partner_auth_token:
+          type: string
+          nullable: true
+        sources: {}
+        client_name:
+          type: string
+          nullable: true
+          maxLength: 100
+        client_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        client_auth_type:
+          type: string
+          maxLength: 50
+        client_credentials: {}
+        destinations: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - slug
+      - sources
+      - updated_at
+    TemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        execution_mode:
+          $ref: '#/components/schemas/ExecutionModeEnum'
+        pull_method:
+          type: string
+          minLength: 1
+          maxLength: 10
+        partner_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        partner_auth_token:
+          type: string
+          nullable: true
+        sources: {}
+        client_name:
+          type: string
+          nullable: true
+          maxLength: 100
+        client_url:
+          type: string
+          nullable: true
+          maxLength: 255
+        client_auth_type:
+          type: string
+          minLength: 1
+          maxLength: 50
+        client_credentials: {}
+        destinations: {}
+      required:
+      - name
+      - sources
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

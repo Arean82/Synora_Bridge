@@ -1,5 +1,6 @@
 # Environments
 venv/
+backend/.venv/
 .env
 
 # Byte-compiled / optimized / DLL files
@@ -9,6 +10,12 @@ __pycache__/
 
 # Database
 bridge.db
+instance/
+
+# Django
+backend/staticfiles/
+backend/db.sqlite3
+backend/data/
 
 # PyInstaller / Build artifacts
 build/
@@ -23,9 +30,15 @@ dist/
 # Project Specific
 scratch/
 sample/
-instance/
 logs/
 
 # Node / JS
 node_modules/
 sample2
+frontend/.output/
+frontend/.nuxt/
+frontend/.data/
+
+# Deepwork state (git-local)
+.slim/deepwork/
+
