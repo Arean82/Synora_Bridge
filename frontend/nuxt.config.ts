@@ -31,9 +31,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // Backend base URL (Django/daphne). Override via NUXT_PUBLIC_API_BASE.
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000',
+      apiBase: (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env?.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000',
       // WebSocket base for the live feed (daphne).
-      wsBase: process.env.NUXT_PUBLIC_WS_BASE || 'ws://127.0.0.1:8000',
+      wsBase: (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env?.NUXT_PUBLIC_WS_BASE || 'ws://127.0.0.1:8000',
     },
   },
 

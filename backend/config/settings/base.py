@@ -135,9 +135,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — driven by [Server] environment:
-#   development â†’ SQLite ([SQLITE] path/database)
-#   production  â†’ PostgreSQL ([POSTGRES] host/port/database/username/password)
+# Database — driven by [Server] environment (mutually exclusive):
+#   development → SQLite ONLY ([SQLITE] path/database)
+#   production  → PostgreSQL ONLY ([POSTGRES] host/port/database/username/password)
+# The other section is never used and never configured, so dev cannot
+# accidentally hit PostgreSQL and production cannot silently fall back to SQLite.
 # ---------------------------------------------------------------------------
 if ENVIRONMENT == "production":
     pool_max_age = ini_int("DatabasePool", "max_age_seconds", 60)
@@ -152,7 +154,14 @@ if ENVIRONMENT == "production":
             "CONN_MAX_AGE": pool_max_age,
         }
     }
+    # Production must NEVER run on SQLite — fail fast if the engine is anything else.
+    if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+        raise RuntimeError(
+            "Production must use PostgreSQL. Set [Server] environment = production "
+            "only with a working [POSTGRES] section."
+        )
 else:
+    # Development must NEVER use PostgreSQL — the [POSTGRES] section is ignored.
     sqlite_path = ini_get("SQLITE", "path", "instance")
     sqlite_db_name = ini_get("SQLITE", "database", "bridge_app.db")
     if not os.path.isabs(sqlite_path):
@@ -164,6 +173,11 @@ else:
             "NAME": os.path.join(sqlite_path, sqlite_db_name),
         }
     }
+    if DATABASES["default"]["ENGINE"] != "django.db.backends.sqlite3":
+        raise RuntimeError(
+            "Development must use SQLite. [POSTGRES] is disabled in development "
+            "(set [Server] environment = production to use PostgreSQL)."
+        )
 
 # ---------------------------------------------------------------------------
 # Production invariants (enforced regardless of which settings module loads)

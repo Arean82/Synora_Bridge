@@ -6,7 +6,8 @@ definePageMeta({ title: 'Settings', layout: 'default' });
 
 const { api } = useApi();
 
-const config = ref<Record<string, Record<string, { value: any; type: string }>>>({});
+type ConfigEntry = { value: any; type: string; options?: string[] };
+const config = ref<Record<string, Record<string, ConfigEntry>>>({});
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
@@ -36,6 +37,18 @@ const sectionMeta: Record<string, { label: string; core?: boolean }> = {
 
 const isPasswordKey = (section: string, key: string) =>
   ['password', 'secret_key', 'encryption_key'].includes(key);
+
+// UI-level DB mutual exclusion: the inactive database section is disabled
+// (dev → PostgreSQL disabled; prod → SQLite disabled), mirroring the backend
+// enforcement in config/settings/base.py.
+const environment = computed(() => String(config.value.Server?.environment?.value ?? 'development'));
+const isDev = computed(() => environment.value === 'development');
+const isProd = computed(() => environment.value === 'production');
+
+// Returns the disabled DB section for the current environment ('POSTGRES' in
+// dev, 'SQLITE' in prod) or '' when the section is active.
+const dbSectionDisabled = (section: string): string =>
+  (section === 'POSTGRES' && isDev.value) || (section === 'SQLITE' && isProd.value) ? section : '';
 
 // CELERY.task_timezone: "use global" checkbox — defaults to Server.timezone.
 const useGlobalTz = ref(false);
@@ -88,6 +101,7 @@ const save = async () => {
     const sections: Record<string, Record<string, string>> = {};
     for (const [sec, keys] of Object.entries(config.value)) {
       sections[sec] = {};
+      if (dbSectionDisabled(sec)) continue;
       for (const [key, entry] of Object.entries(keys)) {
         if (!EDITABLE.has(`${sec}.${key}`)) continue;
         // CELERY.task_timezone: when "use global" is checked, send the
@@ -158,17 +172,28 @@ await load();
       <div
         v-for="(keys, section) in config"
         :key="section"
-        class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        class="rounded-xl border shadow-sm transition-opacity"
+        :class="dbSectionDisabled(section)
+          ? 'border-slate-200 bg-slate-50 opacity-50 dark:border-slate-800 dark:bg-slate-950'
+          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'"
       >
         <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-800">
           <h3 class="font-semibold text-slate-800 dark:text-slate-100">
             {{ sectionMeta[section]?.label || section }}
           </h3>
-          <span v-if="sectionMeta[section]?.core" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
-            Core — restart on change
-          </span>
+          <div class="flex items-center gap-2">
+            <span
+              v-if="dbSectionDisabled(section)"
+              class="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+            >
+              Disabled — {{ environment }} uses {{ dbSectionDisabled(section) === 'POSTGRES' ? 'SQLite' : 'PostgreSQL' }}
+            </span>
+            <span v-if="sectionMeta[section]?.core" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+              Core — restart on change
+            </span>
+          </div>
         </div>
-        <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2" :class="{ 'pointer-events-none': dbSectionDisabled(section) }">
           <div v-for="(entry, key) in keys" :key="key">
             <template v-if="EDITABLE.has(`${section}.${key}`)">
               <label class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{{ key }}</label>
@@ -181,7 +206,7 @@ await load();
                 </label>
                 <select
                   v-model="entry.value"
-                  :disabled="useGlobalTz"
+                  :disabled="useGlobalTz || !!dbSectionDisabled(section)"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950"
                 >
                   <option v-for="opt in entry.options" :key="opt" :value="opt">{{ opt }}</option>
@@ -196,7 +221,7 @@ await load();
                 </label>
                 <input
                   v-model="entry.value"
-                  :disabled="!customCacheBackend"
+                  :disabled="!customCacheBackend || !!dbSectionDisabled(section)"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950"
                 />
               </div>
@@ -205,6 +230,7 @@ await load();
               <select
                 v-else-if="entry.options"
                 v-model="entry.value"
+                :disabled="!!dbSectionDisabled(section)"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               >
                 <option v-for="opt in entry.options" :key="opt" :value="opt">{{ opt }}</option>
@@ -213,6 +239,7 @@ await load();
               <select
                 v-else-if="entry.type === 'bool'"
                 v-model="entry.value"
+                :disabled="!!dbSectionDisabled(section)"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               >
                 <option :value="true">true</option>
@@ -223,6 +250,7 @@ await load();
                 v-else-if="entry.type === 'int'"
                 v-model="entry.value"
                 type="number"
+                :disabled="!!dbSectionDisabled(section)"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               />
 
@@ -230,6 +258,7 @@ await load();
                 v-else
                 v-model="entry.value"
                 :type="isPasswordKey(section, key) ? 'password' : 'text'"
+                :disabled="!!dbSectionDisabled(section)"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               />
             </template>

@@ -42,3 +42,8 @@ frontend/.data/
 # Deepwork state (git-local)
 .slim/deepwork/
 
+# Memurai / Redis runtime artifacts
+dump.rdb
+memurai-log.txt
+
+

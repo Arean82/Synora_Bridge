@@ -48,9 +48,15 @@ python manage.py sync_beat
 
 ```powershell
 python -m daphne -b 0.0.0.0 -p 8000 config.asgi:application   # HTTP + WebSockets
-celery -A config.celery worker -l info --concurrency=8        # push jobs
-celery -A config.celery beat -l info                          # scheduler
+# Windows: Celery's default prefork pool fails (PermissionError WinError 5 +
+# no SIGUSR1 for soft timeouts) — use --pool=solo or --pool=threads.
+celery -A config.celery worker --pool=solo --concurrency=1 -l info   # push jobs
+celery -A config.celery beat -l info                                # scheduler
 ```
+
+> **Windows note:** Memurai (Redis) must be running. If the service won't start
+> (needs admin), launch it directly:
+> `"C:\Program Files\Memurai\memurai.exe" "C:\Program Files\Memurai\memurai.conf"`
 
 4. **Reverse proxy** — use `deploy/nginx.conf` (TLS, gzip, static caching, WebSocket upgrade headers) and `deploy/pgbouncer.ini` (pooling). Point nginx at daphne (127.0.0.1:8000) and staticfiles.
 

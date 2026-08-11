@@ -12,7 +12,7 @@ const nav = [
 const route = useRoute();
 const { apiBase } = useRuntimeConfig().public;
 const { isDark, toggle } = useTheme();
-const docsViewer = ref<InstanceType<typeof UiDocsViewer> | null>(null);
+const docsViewer = ref<{ show: () => Promise<void> } | null>(null);
 
 const isActive = (to: string) => route.path === to || (to !== '/' && route.path.startsWith(to));
 </script>

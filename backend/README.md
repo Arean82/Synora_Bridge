@@ -48,7 +48,7 @@ python manage.py sync_beat
 
 # Three processes (Redis/Memurai required):
 python -m daphne -b 0.0.0.0 -p 8000 config.asgi:application   # HTTP + WS
-celery -A config.celery worker -l info --concurrency=8        # jobs
+celery -A config.celery worker --pool=solo --concurrency=1 -l info   # jobs (Windows: solo pool — prefork fails)
 celery -A config.celery beat -l info                          # scheduler
 ```
 

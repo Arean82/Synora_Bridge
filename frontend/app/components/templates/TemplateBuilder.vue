@@ -93,7 +93,7 @@ const moveDestination = (idx: number, dir: -1 | 1) => {
 
 // --- Field mappings ---
 const addMapping = (dest: any) => dest.field_mapping.push({ source: '', target: '' });
-const removeMapping = (dest: any, idx: number) => dest.field_mapping.splice(idx, 1);
+const removeMapping = (dest: any, idx: number | string) => dest.field_mapping.splice(Number(idx), 1);
 
 const allSourceFields = computed(() => {
   const fields: string[] = [];
