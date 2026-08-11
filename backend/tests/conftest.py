@@ -31,6 +31,8 @@ def mock_source_server():
     thread.start()
     yield server
     server.shutdown()
+    server.server_close()  # release the listening socket (avoids resource warnings)
+    thread.join(timeout=5)
 
 
 @pytest.fixture

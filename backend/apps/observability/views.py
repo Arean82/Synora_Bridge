@@ -1,5 +1,5 @@
 ﻿"""
-Observability domain â€” health probes and metrics.
+Observability domain — health probes and metrics.
 
 Ports original `health_controller.py` (liveness/readiness) and
 `observability_controller.py` (metrics for Zabbix-style HTTP agents).
@@ -16,7 +16,7 @@ from apps.jobs.models import Job, JobLog
 @extend_schema(responses=inline_serializer("Liveness", fields={"status": serializers.CharField()}))
 @api_view(["GET"])
 def liveness_probe(request):
-    """Liveness probe â€” the process is up."""
+    """Liveness probe — the process is up."""
     return Response({"status": "alive"})
 
 
@@ -28,7 +28,7 @@ def liveness_probe(request):
 )
 @api_view(["GET"])
 def readiness_probe(request):
-    """Readiness probe â€” DB connectivity check."""
+    """Readiness probe — DB connectivity check."""
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")

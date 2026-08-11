@@ -1,8 +1,8 @@
 # Synora Bridge — Django backend
 
-The Universal API Bridge rebuilt on **Django 5 + daphne** (replacing the Flask app; original preserved on the `Flask` branch).
+The Universal API Bridge rebuilt on **Django 6 + daphne** (replacing the Flask app; original preserved on the `Flask` branch).
 
-**Stack:** Django 5.2 · DRF `/api/v1/*` · Strawberry GraphQL (dynamic schema) · Channels WebSockets · Celery + beat · drf-spectacular (hey-api/dart-dio client generation) · Redis/Memurai channel layer + broker · PostgreSQL (prod) / SQLite (dev).
+**Stack:** Django 6.0.8 · DRF `/api/v1/*` · Strawberry GraphQL (dynamic schema) · Channels WebSockets · Celery + beat · drf-spectacular (hey-api/dart-dio client generation) · Redis/Memurai channel layer + broker · PostgreSQL (prod) / SQLite (dev).
 
 ## Quick start (development)
 

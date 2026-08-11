@@ -1,5 +1,5 @@
 ﻿"""
-GraphQL source service â€” querying and introspecting external GraphQL endpoints.
+GraphQL source service — querying and introspecting external GraphQL endpoints.
 
 Ports original `bridge_app/services/graphql_service.py` fetch/introspect helpers.
 The dynamic Strawberry schema generation lives in apps.pull (Phase 4).

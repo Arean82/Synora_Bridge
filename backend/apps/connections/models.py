@@ -1,5 +1,5 @@
 ﻿"""
-Connections domain models â€” API connections (Swagger/OpenAPI specs).
+Connections domain models — API connections (Swagger/OpenAPI specs).
 
 Faithful port of original `SwaggerConnection`: a connection stores a fetched
 OpenAPI/Swagger spec (or a local file), its auth configuration, and drives

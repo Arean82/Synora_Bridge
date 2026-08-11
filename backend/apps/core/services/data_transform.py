@@ -1,5 +1,5 @@
 ﻿"""
-Data transformation service â€” dynamic nested payload construction.
+Data transformation service — dynamic nested payload construction.
 
 Ports original `bridge_app/services/data_transform.py` verbatim: builds arbitrary
 nested JSON payloads from dot/bracket notation targets

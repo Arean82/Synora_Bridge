@@ -1,5 +1,5 @@
 ﻿"""
-Email alert service â€” dispatch failure alerts with throttling.
+Email alert service — dispatch failure alerts with throttling.
 
 Ports original `bridge_app/services/email_service.py`: modes none|local|smtp,
 per-job cooldown throttle, HTML failure template. Uses Django's email

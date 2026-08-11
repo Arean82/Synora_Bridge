@@ -1,5 +1,5 @@
 ﻿"""
-Job model signals â€” keep django-celery-beat in sync with job lifecycle.
+Job model signals — keep django-celery-beat in sync with job lifecycle.
 
 Fires on Job post_save / post_delete so the DatabaseScheduler schedule always
 reflects the DB (equivalent of the original app re-registering APScheduler jobs

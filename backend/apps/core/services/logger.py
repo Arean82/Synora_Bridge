@@ -1,5 +1,5 @@
 ﻿"""
-Audit + job logging services â€” the Universal Audit Engine.
+Audit + job logging services — the Universal Audit Engine.
 
 Ports original `bridge_app/services/logger.py`:
 - log_job: record a job execution outcome (JobLog)

@@ -1,5 +1,5 @@
 ﻿"""
-Encryption service â€” AES-256-GCM at-rest protection for sensitive fields.
+Encryption service — AES-256-GCM at-rest protection for sensitive fields.
 
 Faithful port of the original bridge_app/services/encryption.py, hardened:
 - marker-prefixed ciphertext (`$e$`) so encrypted values are unambiguous

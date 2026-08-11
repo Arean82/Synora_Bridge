@@ -1,5 +1,5 @@
 ﻿"""
-Beat sync â€” keep django-celery-beat PeriodicTasks in sync with Job records.
+Beat sync — keep django-celery-beat PeriodicTasks in sync with Job records.
 
 The original original app restored active jobs into APScheduler at startup and
 toggled them on the fly. With Django + django-celery-beat (DatabaseScheduler),

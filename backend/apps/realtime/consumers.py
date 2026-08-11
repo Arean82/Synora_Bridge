@@ -1,5 +1,5 @@
 ﻿"""
-Realtime consumers â€” Channels WebSocket endpoints.
+Realtime consumers — Channels WebSocket endpoints.
 
 `FeedConsumer` mirrors the original original SocketIO `feed_<template_id>`
 broadcast: any connected client subscribed to a template receives the latest

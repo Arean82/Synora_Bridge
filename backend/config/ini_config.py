@@ -7,8 +7,8 @@ it directly with typed getters and safe fallbacks.
 
 Also provides the shared read/write helpers used by the System Configuration
 API (`GET/PUT /api/v1/config/`) and the `scripts/setup_db.py` bootstrap:
-- `get_config_dict()`  â€” read the whole file as {section: {key: value}}
-- `set_ini_value()`    â€” write one key, preserving comments/formatting
+- `get_config_dict()`  — read the whole file as {section: {key: value}}
+- `set_ini_value()`    — write one key, preserving comments/formatting
 """
 import configparser
 import re

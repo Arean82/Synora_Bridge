@@ -1,5 +1,5 @@
 ﻿"""
-Configs domain models â€” the bridge execution template.
+Configs domain models — the bridge execution template.
 
 Faithful port of original `TemplateModel`: a template defines the sources to pull
 from, the destinations to push to, field mappings, and the execution mode

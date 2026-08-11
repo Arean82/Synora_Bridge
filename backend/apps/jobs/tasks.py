@@ -1,5 +1,5 @@
 ﻿"""
-Celery tasks â€” the push/pull execution engine.
+Celery tasks — the push/pull execution engine.
 
 Ports original `bridge_app/services/task_runner.py`:
 

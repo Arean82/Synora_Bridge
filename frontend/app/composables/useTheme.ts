@@ -24,9 +24,15 @@ export function useTheme() {
   const setMode = async (m: ColorMode) => {
     apply(m);
     if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, m);
+    // Upsert server-side: ui.theme may already exist (seeded) — blind POST
+    // would 400 on the unique key, so fetch-then-PUT when it exists.
     try {
-      await fetch(`${getApiBase()}/api/v1/settings/`, {
-        method: 'POST',
+      const base = getApiBase();
+      const existing = await (await fetch(`${base}/api/v1/settings/?key=ui.theme`)).json();
+      const record = existing?.results?.[0];
+      const url = record ? `${base}/api/v1/settings/${record.id}/` : `${base}/api/v1/settings/`;
+      await fetch(url, {
+        method: record ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'ui.theme', value: { colorMode: m } }),
       });

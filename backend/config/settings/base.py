@@ -65,9 +65,14 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
-# Application definition â€” modular apps registered per feature domain.
+# Application definition — modular apps registered per feature domain.
 DJANGO_APPS = [
     "daphne",  # must come before django.contrib.staticfiles for ASGI serving
+    # Jazzmin must precede django.contrib.admin so its templates override the
+    # default admin chrome. (admin_black / admin_material are standalone full
+    # admin skins, not Jazzmin dropdown themes — not installed; they would add
+    # dead migrations and no working integration.)
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -82,10 +87,6 @@ THIRD_PARTY_APPS = [
     "django_celery_beat",
     "drf_spectacular",
     "corsheaders",
-    # Django admin theming — Jazzmin (Black + Material skins, theme dropdown).
-    "jazzmin",
-    "admin_black",
-    "admin_material",
 ]
 
 LOCAL_APPS = [
@@ -102,7 +103,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Serve /static/ under ASGI (daphne) â€” needed by DRF browsable API + admin.
+    # Serve /static/ under ASGI (daphne) — needed by DRF browsable API + admin.
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -134,7 +135,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------------------
-# Database â€” driven by [Server] environment:
+# Database — driven by [Server] environment:
 #   development â†’ SQLite ([SQLITE] path/database)
 #   production  â†’ PostgreSQL ([POSTGRES] host/port/database/username/password)
 # ---------------------------------------------------------------------------
@@ -183,13 +184,19 @@ if ENVIRONMENT == "production":
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # HSTS only over HTTPS; 31536000s = 1 year. Requires the reverse proxy to
+    # set X-Forwarded-Proto (deploy/nginx.conf does).
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 else:
     # Development convenience: console email backend (no SMTP server needed).
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # ---------------------------------------------------------------------------
-# Redis / Memurai â€” channel layer + Celery broker.
+# Redis / Memurai — channel layer + Celery broker.
 # ---------------------------------------------------------------------------
 REDIS_URL = ini_get("REDIS", "url", "redis://localhost:6379/0")
 
@@ -238,13 +245,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "DEFAULT_RENDERER_CLASSES": [
+        # JSON-only for the API — the docs/exploration layer is Swagger UI +
+        # Redoc + the Nuxt API-docs page (no DRF Browsable API exposed to
+        # developers/users).
         "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer",
     ],
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
 }
 
-# drf-spectacular â€” generates the OpenAPI schema for hey-api / dart-dio clients.
+# drf-spectacular — generates the OpenAPI schema for hey-api / dart-dio clients.
 SPECTACULAR_SETTINGS = {
     "TITLE": "Synora Bridge API",
     "DESCRIPTION": (
@@ -255,6 +264,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    # Highest OpenAPI version drf-spectacular supports (3.0.3 default, 3.1.0
+    # supported; 3.2.0 is NOT a drf-spectacular capability — the pull-endpoint
+    # spec generator serves 3.2.0 separately, built from the OAS 3.2.0 spec).
+    "OAS_VERSION": "3.1.0",
     # auth_type and spec_auth_type share one choices tuple; a single override
     # gives the shared set one stable name (drf-spectacular dedupes by content).
     "ENUM_NAME_OVERRIDES": {
@@ -375,9 +388,12 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Compressed + hashed static files served by WhiteNoiseMiddleware (daphne/ASGI).
+# Lenient subclass tolerates bundled JS referencing sourcemaps that don't ship
+# with the package (admin-material's bootstrap bundle) — strips the reference
+# instead of failing the whole collectstatic pass. Real files still hashed.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "apps.core.storage.LenientManifestStaticFilesStorage"},
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -446,13 +462,13 @@ if PULL_CACHE_ENABLED:
     }
 
 # ---------------------------------------------------------------------------
-# Database pooling (config.ini [DatabasePool]) â€” CONN_MAX_AGE is applied in
+# Database pooling (config.ini [DatabasePool]) — CONN_MAX_AGE is applied in
 # the DATABASES block above; PgBouncer config ships in deploy/pgbouncer.ini.
 # ---------------------------------------------------------------------------
 DATABASE_POOL_ENABLED = ini_bool("DatabasePool", "enabled", False)
 
 # ---------------------------------------------------------------------------
-# Reverse proxy (config.ini [ReverseProxy]) â€” nginx config ships in
+# Reverse proxy (config.ini [ReverseProxy]) — nginx config ships in
 # deploy/nginx.conf; the app only needs to trust the proxy headers.
 # ---------------------------------------------------------------------------
 REVERSE_PROXY_ENABLED = ini_bool("ReverseProxy", "enabled", False)

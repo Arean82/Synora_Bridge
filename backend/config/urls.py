@@ -11,6 +11,7 @@ and is mounted here with a clear prefix:
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -19,6 +20,8 @@ from drf_spectacular.views import (
 )
 
 urlpatterns = [
+    # Backend root → API overview (the dashboard UI lives in Nuxt, port 3000).
+    path("", RedirectView.as_view(url="/api/v1/", permanent=False), name="root"),
     # Admin
     path("admin/", admin.site.urls),
     # REST API v1 — each app registers its own router under this prefix.

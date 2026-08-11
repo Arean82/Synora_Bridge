@@ -3,37 +3,37 @@
 ## System overview
 
 ```
-                 ┌──────────────────────────────────────────────┐
-   Nuxt 4 SPA    │              Django 5 / daphne (ASGI)        │
-  (localhost:3000)│                                              │
-                 │  ┌──────────┐  ┌───────────┐  ┌───────────┐  │
+                 ┌───────────────────────────────────────────────┐
+   Nuxt 4 SPA    │              Django 6 / daphne (ASGI)         │  
+(localhost:3000) │                                               │
+                 │   ┌──────────┐  ┌───────────┐  ┌───────────┐  │
    REST /api/v1 ─┼─▶│ DRF      │  │ Pull REST │  │ Pull Graph│  │
    GraphQL      ─┼─▶│ viewsets │  │ (dynamic  │  │ (Strawb-  │  │
    WebSocket    ─┼─▶│          │  │  OpenAPI) │  │  erry)    │  │
    /ws/feed/    ─┼─▶│          │  └───────────┘  └───────────┘  │
-                 │  └────┬─────┘        │            │          │
-                 │       │              └──▶ Celery tasks ─────▶│  Source APIs
-                 │  ┌────▼─────┐   ┌─── Channels ───┐           │  (external)
-                 │  │ PostgreSQL│   │  (WS layer)   │           │
-                 │  │ / SQLite │   └───────┬────────┘           │
-                 │  └──────────┘           │ Redis/Memurai      │
-                 └─────────────────────────┼────────────────────┘
-                                           │ (channel layer + broker + cache)
+                 │   └────┬─────┘        │            │          │
+                 │        │              └──▶ Celery tasks ────▶│  Source APIs
+                 │   ┌────▼─────┐   ┌─── Channels ───┐           │  (external)
+                 │   │PostgreSQL│   │  (WS layer)    │           │
+                 │   │ / SQLite │   └───────┬────────┘           │
+                 │   └──────────┘           │ Redis/Memurai      │
+                 └─ ────────────────────────┼────────────────────┘
+                                            │ (channel layer + broker + cache)
 ```
 
 ## Modular app layout
 
 Each feature is a self-contained Django app under `backend/apps/` owning its models, serializers, viewsets, router, services and URLs:
 
-| App | Responsibility |
-|---|---|
-| `core` | Shared services (encryption, audit, email, OTel, errors), AppSetting, AuditLog |
-| `configs` | Bridge templates (sources → destinations → field mappings), indexed slug |
-| `connections` | OpenAPI/Swagger connections, spec validation/fetch, refresh task |
-| `jobs` | Scheduled jobs, JobLog, FailedPayload, Celery tasks, beat sync |
-| `pull` | Dynamic pull REST + GraphQL endpoints, OpenAPI generator, mock server |
-| `realtime` | Channels WebSocket consumers (`/ws/feed/<id>/`) |
-| `observability` | Health probes + metrics |
+| App               | Responsibility                                                                 |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `core`          | Shared services (encryption, audit, email, OTel, errors), AppSetting, AuditLog |
+| `configs`       | Bridge templates (sources → destinations → field mappings), indexed slug     |
+| `connections`   | OpenAPI/Swagger connections, spec validation/fetch, refresh task               |
+| `jobs`          | Scheduled jobs, JobLog, FailedPayload, Celery tasks, beat sync                 |
+| `pull`          | Dynamic pull REST + GraphQL endpoints, OpenAPI generator, mock server          |
+| `realtime`      | Channels WebSocket consumers (`/ws/feed/<id>/`)                              |
+| `observability` | Health probes + metrics                                                        |
 
 URLs compose in `config/api_router.py` — adding a feature = register its router, nothing else changes.
 

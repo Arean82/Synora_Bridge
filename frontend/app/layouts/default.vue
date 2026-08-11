@@ -4,6 +4,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: 'i-heroicons-home' },
   { to: '/templates', label: 'Templates', icon: 'i-heroicons-squares-2x2' },
   { to: '/connections', label: 'Connections', icon: 'i-heroicons-link' },
+  { to: '/api-docs', label: 'API Docs', icon: 'i-heroicons-book-open' },
   { to: '/settings', label: 'Settings', icon: 'i-heroicons-cog-6-tooth' },
   { to: '/audit', label: 'Audit Logs', icon: 'i-heroicons-clipboard-document-list' },
 ];

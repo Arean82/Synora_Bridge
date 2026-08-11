@@ -1,5 +1,5 @@
 ﻿"""
-Connections domain services â€” Swagger/OpenAPI fetching and URL fixing.
+Connections domain services — Swagger/OpenAPI fetching and URL fixing.
 
 Ports original `bridge_app/services/swagger_utils.py`:
 - fetch_swagger_json: fetch a spec from a URL (HTML wrapper extraction supported)

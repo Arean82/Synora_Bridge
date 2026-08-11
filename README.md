@@ -1,13 +1,13 @@
 # Synora Bridge — Universal API Bridge
 
-A production-grade **API integration middleware** built on **Django 5 + Nuxt 4** that moves data between Partner Source APIs and Client Destination APIs — with **fully dynamic** endpoints: templates, connections, pull REST endpoints, OpenAPI specs, GraphQL schemas and mock routes are all created at runtime from the UI/API, no code per API.
+A production-grade **API integration middleware** built on **Django 6 + Nuxt 4** that moves data between Partner Source APIs and Client Destination APIs — with **fully dynamic** endpoints: templates, connections, pull REST endpoints, OpenAPI specs, GraphQL schemas and mock routes are all created at runtime from the UI/API, no code per API.
 
 > This is the new Django + Nuxt 4 implementation. The original Flask app is preserved on the `Flask` branch.
 
 ## Architecture
 
 ```
-Django 5 (ASGI: daphne)
+Django 6 (ASGI: daphne)
 ├── DRF ───────────── REST API        /api/v1/*
 ├── Strawberry ────── GraphQL         /api/v1/bridge/graphql/<slug>/ (dynamic schema)
 ├── Channels ──────── WebSockets      /ws/feed/<template_id>/ (live feed)
@@ -39,6 +39,7 @@ Nuxt 4 (Vue 3) — frontend SPA (Tailwind v4 + PrimeVue fallback)
 - **Connections** — Add Connection modal (REST/GraphQL, URL/paste spec, upstream auth), status toggle, refresh, per-connection docs/playground/mock.
 - **Dashboard** — schedule table with per-job toggle, **Bulk Start/Stop + master select**, live 5s polling.
 - **Audit** — transaction details modal with syntax-highlighted payload JSON.
+- **Django admin** — themed with **Jazzmin** (26 Bootswatch themes via the admin theme dropdown, light/dark mode toggle, custom branding/icons).
 - **Email templates** — list/read/edit failure-alert templates (path-traversal hardened).
 - **Validation utilities** — `/connections/validate` (SSRF-hardened), `/test_mapping` (mapping preview), `/bridge/graphql_introspect`.
 - **Security** — AES-256-GCM at-rest encryption, per-template bearer auth on data execution (docs/playground public), SSRF protection, rate limiting, fail-fast config validation.

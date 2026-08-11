@@ -1,4 +1,4 @@
-﻿"""Core domain models â€” app settings and the universal audit log."""
+﻿"""Core domain models — app settings and the universal audit log."""
 import uuid
 
 from django.db import models
@@ -23,7 +23,7 @@ class AppSetting(models.Model):
 
 
 class AuditLog(models.Model):
-    """Universal Audit Engine â€” records every data transaction.
+    """Universal Audit Engine — records every data transaction.
 
     Ports original `AuditLog`: every push / pull-rest / pull-graphql transaction
     with transaction id, caller, bytes transferred, record count and status.

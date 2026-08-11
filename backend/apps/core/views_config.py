@@ -102,6 +102,7 @@ def doc_content(request, filename):
 
 
 @extend_schema(
+    operation_id="email_templates_list",
     summary="List email templates",
     responses={200: inline_serializer("EmailTemplateList", fields={"templates": serializers.ListField(child=serializers.CharField())})},
 )
@@ -115,11 +116,13 @@ def email_templates_list(request):
 
 @extend_schema(
     methods=["GET"],
+    operation_id="email_template_retrieve",
     summary="Read one email template",
     responses={200: inline_serializer("EmailTemplateRead", fields={"filename": serializers.CharField(), "content": serializers.CharField()})},
 )
 @extend_schema(
     methods=["PUT"],
+    operation_id="email_template_update",
     summary="Save one email template",
     request=inline_serializer("EmailTemplateWrite", fields={"content": serializers.CharField()}),
     responses={200: inline_serializer("EmailTemplateSaved", fields={"filename": serializers.CharField(), "saved": serializers.BooleanField()})},
