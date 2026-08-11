@@ -235,6 +235,45 @@ def test_doc_content_endpoint(client, settings):
         assert r.status_code in (400, 404)
 
 
+def test_doc_content_sanitized_html(client, settings):
+    """Docs are rendered server-side and XSS-stripped with bleach (reference-
+    repo pattern): tables/fenced code render, script tags + event handlers
+    are removed."""
+    import bleach
+    import markdown
+
+    raw = (
+        "# Header\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n"
+        "```python\nprint('hi')\n```\n\n<script>alert(1)</script>\n\n"
+        "<img src=x onerror=alert(2)>\n"
+    )
+    html = markdown.markdown(raw, extensions=["extra", "tables", "fenced_code", "codehilite", "sane_lists", "toc"])
+    safe = bleach.clean(
+        html,
+        tags=[
+            "p", "br", "hr", "h1", "h2", "h3", "h4", "h5", "h6",
+            "strong", "em", "del", "code", "pre", "blockquote",
+            "ul", "ol", "li", "dl", "dt", "dd",
+            "table", "thead", "tbody", "tr", "th", "td",
+            "a", "img", "span", "div",
+        ],
+        attributes={
+            "a": ["href", "title", "target", "rel"],
+            "img": ["src", "alt", "title"],
+            "code": ["class"],
+            "th": ["align"], "td": ["align"],
+            "span": ["class"],
+        },
+        protocols=["http", "https", "mailto"],
+    )
+    assert "<h1>" in safe and "Header" in safe
+    assert "<table>" in safe and "<td>1</td>" in safe
+    assert "<pre>" in safe and "print" in safe
+    # Executable script tag and event-handler attribute must be removed.
+    assert "<script" not in safe
+    assert "onerror" not in safe
+
+
 def test_email_templates_crud_and_traversal(client, settings, tmp_path):
     """Email template list/read/write + path-traversal hardening."""
     from apps.core.services import email_templates

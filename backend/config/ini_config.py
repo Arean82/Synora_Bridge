@@ -25,6 +25,8 @@ CORE_RESTART_KEYS = {
     "SQLITE": {"path", "database"},
     "CELERY": {"broker_url", "result_backend", "always_eager"},
     "SECURITY": {"secret_key", "encryption_key"},
+    # OTel initializes at startup — changes need a restart.
+    "OPENTELEMETRY": {"enabled", "otlp_endpoint", "service_name"},
 }
 
 

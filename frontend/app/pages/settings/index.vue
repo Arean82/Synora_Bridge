@@ -37,7 +37,11 @@ const sectionMeta: Record<string, { label: string; core?: boolean }> = {
 const isPasswordKey = (section: string, key: string) =>
   ['password', 'secret_key', 'encryption_key'].includes(key);
 
-// Which keys are editable vs informational.
+// CELERY.task_timezone: "use global" checkbox — defaults to Server.timezone.
+const useGlobalTz = ref(false);
+// Cache.backend: auto-populated (redis) with an optional custom override.
+const customCacheBackend = ref(false);
+
 const EDITABLE = new Set([
   'Server.host', 'Server.port', 'Server.environment', 'Server.debug', 'Server.timezone', 'Server.allowed_hosts',
   'POSTGRES.host', 'POSTGRES.port', 'POSTGRES.database', 'POSTGRES.username', 'POSTGRES.password',
@@ -50,7 +54,7 @@ const EDITABLE = new Set([
   'UI.theme', 'UI.colormode', 'UI.layout', 'UI.date_format',
   'OPENTELEMETRY.enabled', 'OPENTELEMETRY.otlp_endpoint', 'OPENTELEMETRY.service_name',
   'OPENTELEMETRY.instrument_django', 'OPENTELEMETRY.instrument_requests', 'OPENTELEMETRY.instrument_celery',
-  'OPENTELEMETRY.instrument_db', 'OPENTELEMETRY.instrument_http',
+  'OPENTELEMETRY.instrument_http',
   'RateLimit.enabled', 'RateLimit.rate', 'RateLimit.period',
   'Cache.enabled', 'Cache.backend', 'Cache.default_ttl_seconds',
   'DatabasePool.enabled', 'DatabasePool.max_age_seconds',
@@ -86,6 +90,17 @@ const save = async () => {
       sections[sec] = {};
       for (const [key, entry] of Object.entries(keys)) {
         if (!EDITABLE.has(`${sec}.${key}`)) continue;
+        // CELERY.task_timezone: when "use global" is checked, send the
+        // Server.timezone value (keeps the config consistent).
+        if (sec === 'CELERY' && key === 'task_timezone' && useGlobalTz.value) {
+          sections[sec][key] = String(config.value.Server?.timezone?.value ?? entry.value);
+          continue;
+        }
+        // Cache.backend: auto-populated (redis) unless custom is checked.
+        if (sec === 'Cache' && key === 'backend' && !customCacheBackend.value) {
+          sections[sec][key] = 'redis';
+          continue;
+        }
         sections[sec][key] = String(entry.value);
       }
     }
@@ -157,20 +172,60 @@ await load();
           <div v-for="(entry, key) in keys" :key="key">
             <template v-if="EDITABLE.has(`${section}.${key}`)">
               <label class="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{{ key }}</label>
+
+              <!-- CELERY.task_timezone: "use global" checkbox (defaults to Server.timezone) -->
+              <div v-if="section === 'CELERY' && key === 'task_timezone'" class="space-y-2">
+                <label class="flex items-center gap-2 text-sm">
+                  <input v-model="useGlobalTz" type="checkbox" class="h-4 w-4 rounded" />
+                  Use global timezone (Server)
+                </label>
+                <select
+                  v-model="entry.value"
+                  :disabled="useGlobalTz"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950"
+                >
+                  <option v-for="opt in entry.options" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
+
+              <!-- Cache.backend: auto-populated (redis) with custom override -->
+              <div v-else-if="section === 'Cache' && key === 'backend'" class="space-y-2">
+                <label class="flex items-center gap-2 text-sm">
+                  <input v-model="customCacheBackend" type="checkbox" class="h-4 w-4 rounded" />
+                  Custom backend
+                </label>
+                <input
+                  v-model="entry.value"
+                  :disabled="!customCacheBackend"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950"
+                />
+              </div>
+
+              <!-- Dropdown from backend-provided options (timezones, units, modes, …) -->
               <select
-                v-if="entry.type === 'bool'"
+                v-else-if="entry.options"
+                v-model="entry.value"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+              >
+                <option v-for="opt in entry.options" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+
+              <select
+                v-else-if="entry.type === 'bool'"
                 v-model="entry.value"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               >
                 <option :value="true">true</option>
                 <option :value="false">false</option>
               </select>
+
               <input
                 v-else-if="entry.type === 'int'"
                 v-model="entry.value"
                 type="number"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
               />
+
               <input
                 v-else
                 v-model="entry.value"

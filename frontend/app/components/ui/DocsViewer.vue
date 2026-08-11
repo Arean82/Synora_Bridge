@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // DocsViewer — markdown documentation modal (original docs_modal.html parity).
-// Buttons for README + docs/*.md; renders markdown client-side with marked.
-import { marked } from 'marked';
-
+// Docs are rendered + sanitized SERVER-SIDE (Markdown + bleach, reference-repo
+// pattern); the frontend displays trusted HTML — no client-side markdown/XSS
+// surface. Buttons for README + docs/*.md.
 const { api } = useApi();
 
 const open = ref(false);
@@ -24,7 +24,7 @@ const loadDoc = async (file: string, label: string) => {
   title.value = label;
   try {
     const res = await api.request<any>(`/api/v1/docs/markdown/${encodeURIComponent(file)}/`);
-    html.value = marked.parse(res.content) as string;
+    html.value = res.content;
   } catch (e: any) {
     error.value = e.message;
     html.value = '';
@@ -66,7 +66,11 @@ defineExpose({ show });
       <div class="flex-1 overflow-y-auto p-5">
         <div v-if="error" class="rounded-lg bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950 dark:text-rose-300">{{ error }}</div>
         <div v-else-if="loading" class="text-center text-slate-400">Loading…</div>
-        <div v-else class="prose-sm max-w-none" v-html="html" />
+        <div
+          v-else
+          class="prose prose-sm max-w-none prose-slate dark:prose-invert prose-headings:font-semibold prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-pre:bg-slate-950 prose-code:before:content-none prose-code:after:content-none"
+          v-html="html"
+        />
       </div>
     </div>
   </div>

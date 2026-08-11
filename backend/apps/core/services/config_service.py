@@ -11,6 +11,7 @@ Faithful to the original original settings page semantics, minus its bugs:
 - no `os.execl` self-restart; a `restart_required` flag is returned instead
 """
 from config.ini_config import get_config_dict, requires_restart, set_ini_value
+from zoneinfo import available_timezones
 
 
 def _typed_value(value: str) -> bool | int | str:
@@ -23,15 +24,50 @@ def _typed_value(value: str) -> bool | int | str:
         return value
 
 
+# Dropdown options per config key (rendered as <select> in the System
+# Configuration GUI). Keys without options render as text/number/bool inputs.
+DROPDOWN_OPTIONS = {
+    "Server.environment": ["development", "production"],
+    "Server.timezone": sorted(available_timezones()),
+    "CELERY.task_timezone": sorted(available_timezones()),
+    "UI.theme": ["default", "glass", "clay", "neobrut", "solid"],
+    "UI.colormode": ["auto", "light", "dark"],
+    "UI.layout": ["sidebar", "top"],
+    "UI.date_format": ["DD/MM/YYYY HH:mm:ss", "MM/DD/YYYY HH:mm:ss", "YYYY-MM-DD HH:mm:ss"],
+    "Logging.rotation": ["midnight", "daily", "weekly", "hourly", "monthly"],
+    "Swagger.refresh_unit": ["minutes", "hours", "days"],
+    "Email.mode": ["none", "local", "smtp"],
+    "RateLimit.period": ["second", "minute", "hour", "day"],
+    # All boolean keys get string options ("true"/"false") so the GUI dropdown
+    # matches the stored string value (a `:value="true"` select wouldn't).
+    "Server.debug": ["true", "false"],
+    "OPENTELEMETRY.enabled": ["true", "false"],
+    "OPENTELEMETRY.instrument_django": ["true", "false"],
+    "OPENTELEMETRY.instrument_requests": ["true", "false"],
+    "OPENTELEMETRY.instrument_celery": ["true", "false"],
+    "OPENTELEMETRY.instrument_http": ["true", "false"],
+    "RateLimit.enabled": ["true", "false"],
+    "Cache.enabled": ["true", "false"],
+    "DatabasePool.enabled": ["true", "false"],
+    "ReverseProxy.enabled": ["true", "false"],
+    "CELERY.always_eager": ["true", "false"],
+    "CELERY.task_acks_late": ["true", "false"],
+    "Email.throttle_enabled": ["true", "false"],
+}
+
+
 def get_full_config(path=None) -> dict:
-    """Return the whole config as {section: {key: {value, type}}}."""
+    """Return the whole config as {section: {key: {value, type, options?}}}."""
     raw = get_config_dict(path)
-    result = {}
+    result: dict[str, dict[str, dict]] = {}
     for section, keys in raw.items():
-        result[section] = {
-            key: {"value": val, "type": type(_typed_value(val)).__name__}
-            for key, val in keys.items()
-        }
+        result[section] = {}
+        for key, val in keys.items():
+            entry: dict = {"value": val, "type": type(_typed_value(val)).__name__}
+            options = DROPDOWN_OPTIONS.get(f"{section}.{key}")
+            if options:
+                entry["options"] = options
+            result[section][key] = entry
     return result
 
 

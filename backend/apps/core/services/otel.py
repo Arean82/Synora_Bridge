@@ -50,10 +50,8 @@ def setup_otel():
             from opentelemetry.instrumentation.celery import CeleryInstrumentor  # type: ignore[import-not-found]
 
             CeleryInstrumentor().instrument()
-        if instrument.get("db"):
-            from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-
-            SQLAlchemyInstrumentor().instrument()
+        # NOTE: no SQLAlchemy instrumentation — this app uses the Django ORM;
+        # DjangoInstrumentor already covers DB query spans.
         if instrument.get("http"):
             from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor  # type: ignore[import-not-found]
 

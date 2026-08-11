@@ -1,6 +1,9 @@
 /* Synora Bridge — Tailwind CSS v4 entry + base styles. */
 @import "tailwindcss";
 
+/* Typography plugin — proper markdown/prose styling for the Docs viewer. */
+@plugin "@tailwindcss/typography";
+
 /* Class-based dark mode: toggle the `dark` class on <html> (theme switcher). */
 @custom-variant dark (&:where(.dark, .dark *));
 

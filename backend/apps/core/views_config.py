@@ -66,18 +66,23 @@ def config_endpoint(request):
 
 
 @extend_schema(
-    summary="Read a project documentation file (README.md / docs/*.md)",
+    summary="Read a project documentation file (README.md / docs/*.md) as sanitized HTML",
     responses={200: inline_serializer("DocContent", fields={"filename": serializers.CharField(), "content": serializers.CharField()})},
 )
 @api_view(["GET"])
 def doc_content(request, filename):
-    """Serve markdown docs for the frontend viewer (original docs modal parity).
+    """Serve markdown docs rendered to SANITIZED HTML (reference-repo pattern).
 
+    Renders Markdown server-side with the full extension set (tables, fenced
+    code, codehilite, sane lists) then strips unsafe HTML with bleach, so the
+    frontend displays trusted HTML — no client-side markdown/XSS surface.
     README.md is served from the repo root; everything else from docs/.
     Traversal is rejected (hardened: the original only blocked `..` and `/`).
     """
     from pathlib import Path
 
+    import bleach
+    import markdown
     from config.ini_config import BACKEND_DIR as BACKEND_PKG_DIR
 
     repo_root = BACKEND_PKG_DIR.parent
@@ -95,10 +100,33 @@ def doc_content(request, filename):
         return Response({"error": "Document not found."}, status=status.HTTP_404_NOT_FOUND)
 
     try:
-        return Response({"filename": name, "content": target.read_text(encoding="utf-8")})
+        raw = target.read_text(encoding="utf-8")
+        html = markdown.markdown(
+            raw,
+            extensions=["extra", "tables", "fenced_code", "codehilite", "sane_lists", "toc"],
+        )
+        safe_html = bleach.clean(
+            html,
+            tags=[
+                "p", "br", "hr", "h1", "h2", "h3", "h4", "h5", "h6",
+                "strong", "em", "del", "code", "pre", "blockquote",
+                "ul", "ol", "li", "dl", "dt", "dd",
+                "table", "thead", "tbody", "tr", "th", "td",
+                "a", "img", "span", "div",
+            ],
+            attributes={
+                "a": ["href", "title", "target", "rel"],
+                "img": ["src", "alt", "title"],
+                "code": ["class"],
+                "th": ["align"], "td": ["align"],
+                "span": ["class"],
+            },
+            protocols=["http", "https", "mailto"],
+        )
+        return Response({"filename": name, "content": safe_html})
     except Exception:
-        logger.exception("Failed to read doc %s", name)
-        return Response({"error": "Failed to read document."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.exception("Failed to render doc %s", name)
+        return Response({"error": "Failed to render document."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @extend_schema(

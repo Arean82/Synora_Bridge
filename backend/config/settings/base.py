@@ -433,7 +433,6 @@ OTEL_INSTRUMENT = {
     "django": ini_bool("OPENTELEMETRY", "instrument_django", True),
     "requests": ini_bool("OPENTELEMETRY", "instrument_requests", True),
     "celery": ini_bool("OPENTELEMETRY", "instrument_celery", True),
-    "db": ini_bool("OPENTELEMETRY", "instrument_db", True),
     "http": ini_bool("OPENTELEMETRY", "instrument_http", True),
 }
 
