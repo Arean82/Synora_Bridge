@@ -76,25 +76,32 @@ def test_rate_limit_429(client, mock_source_url):
     from django.core.cache import cache
 
     cache.clear()
-    from django.conf import settings
+    # Rate limiting is config-driven (config/live_settings.py): write a small
+    # rate to the test fixture and restore it afterwards.
+    import config.ini_config as ic
+    from config import live_settings
 
-    settings.RATE_LIMIT_ENABLED = True
-    settings.RATE_LIMIT_RATE = "3"
-    settings.RATE_LIMIT_PERIOD = "minute"
-
-    tpl = Template.objects.create(
-        name="Rate Test",
-        execution_mode="pull_rest",
-        sources=[{"name": "m", "url": mock_source_url, "source_type": "rest"}],
-        destinations=[{"name": "c1", "method": "GET", "field_mapping": []}],
-    )
+    original_rate = ic.get_config_dict().get("RateLimit", {}).get("rate", "60")
     try:
-        statuses = [client.get(f"/api/v1/bridge/pull/{tpl.slug}/c1/").status_code for _ in range(6)]
-        assert statuses.count(429) >= 1
-        assert statuses[:3] == [200, 200, 200]
+        ic.set_ini_value(ic.DEFAULT_PATH, "RateLimit", "rate", "3")
+        live_settings.clear_cache()
+
+        tpl = Template.objects.create(
+            name="Rate Test",
+            execution_mode="pull_rest",
+            sources=[{"name": "m", "url": mock_source_url, "source_type": "rest"}],
+            destinations=[{"name": "c1", "method": "GET", "field_mapping": []}],
+        )
+        try:
+            statuses = [client.get(f"/api/v1/bridge/pull/{tpl.slug}/c1/").status_code for _ in range(6)]
+            assert statuses.count(429) >= 1
+            assert statuses[:3] == [200, 200, 200]
+        finally:
+            tpl.delete()
+            cache.clear()
     finally:
-        tpl.delete()
-        cache.clear()
+        ic.set_ini_value(ic.DEFAULT_PATH, "RateLimit", "rate", original_rate)
+        live_settings.clear_cache()
 
 
 def test_graphql_dynamic_schema(client, mock_source_url):

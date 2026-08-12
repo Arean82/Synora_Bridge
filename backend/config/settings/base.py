@@ -9,7 +9,8 @@ ENCRYPTION_KEY) so credentials never need to live in the config file.
 import os
 from pathlib import Path
 
-from config.ini_config import load_ini
+from config.ini_config import find_section, load_ini
+from config.live_settings import live_list
 
 # Project root: backend/ (two levels up from this file)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -20,27 +21,33 @@ INI = load_ini()
 
 def ini_get(section, key, fallback=""):
     """Typed helper: read a string from config.ini with fallback."""
-    try:
-        return INI.get(section, key).strip()
-    except (configparser.NoSectionError, configparser.NoOptionError):
+    sec = find_section(INI, section)
+    if sec is None or key not in sec:
         return fallback
+    return sec[key].strip()
 
 
 def ini_bool(section, key, fallback=False):
+    sec = find_section(INI, section)
+    if sec is None:
+        return fallback
     try:
-        return INI.getboolean(section, key)
+        return sec.getboolean(key)
     except Exception:
         return fallback
 
 
 def ini_int(section, key, fallback=0):
+    sec = find_section(INI, section)
+    if sec is None:
+        return fallback
     try:
-        return INI.getint(section, key)
+        return sec.getint(key)
     except Exception:
         return fallback
 
 
-import configparser  # noqa: E402  (needed for exception classes above)
+import configparser  # noqa: E402  (kept for backward-compat exception refs)
 
 # ---------------------------------------------------------------------------
 # Core Django
@@ -64,6 +71,11 @@ ALLOWED_HOSTS = [
     for h in ini_get("SERVER", "allowed_hosts", "127.0.0.1,localhost").split(",")
     if h.strip()
 ]
+
+# Reverse proxy flag ([ReverseProxy] enabled) — decides whether the app trusts
+# X-Forwarded-* headers and enforces HTTPS-only behavior. Default: direct daphne
+# (plain HTTP). Deployed TLS: nginx/caddy in front (deploy/nginx.conf).
+REVERSE_PROXY_ENABLED = ini_bool("ReverseProxy", "enabled", False)
 
 # Application definition — modular apps registered per feature domain.
 DJANGO_APPS = [
@@ -135,49 +147,68 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — driven by [Server] environment (mutually exclusive):
-#   development → SQLite ONLY ([SQLITE] path/database)
-#   production  → PostgreSQL ONLY ([POSTGRES] host/port/database/username/password)
-# The other section is never used and never configured, so dev cannot
-# accidentally hit PostgreSQL and production cannot silently fall back to SQLite.
+# Database — driven by [Server] environment + per-section enabled flags
+# (mutually exclusive):
+#   development → SQLite ONLY ([SQLITE] path/database); [POSTGRES] never used,
+#                 the enabled flags take effect only in production.
+#   production  → exactly one of [POSTGRES] enabled / [SQLITE] enabled must be
+#                 true; the enabled section is used. Defaults when absent:
+#                 POSTGRES disabled, SQLITE enabled → production standalone
+#                 SQLite (auto-creates the DB). Switching production to
+#                 PostgreSQL requires a verified connection (enforced by the
+#                 config API save gate).
 # ---------------------------------------------------------------------------
-if ENVIRONMENT == "production":
-    pool_max_age = ini_int("DatabasePool", "max_age_seconds", 60)
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": ini_get("POSTGRES", "database", "bridge_db"),
-            "USER": ini_get("POSTGRES", "username", "postgres"),
-            "PASSWORD": ini_get("POSTGRES", "password", ""),
-            "HOST": ini_get("POSTGRES", "host", "localhost"),
-            "PORT": ini_get("POSTGRES", "port", "5432"),
-            "CONN_MAX_AGE": pool_max_age,
-        }
-    }
-    # Production must NEVER run on SQLite — fail fast if the engine is anything else.
-    if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
-        raise RuntimeError(
-            "Production must use PostgreSQL. Set [Server] environment = production "
-            "only with a working [POSTGRES] section."
-        )
-else:
-    # Development must NEVER use PostgreSQL — the [POSTGRES] section is ignored.
+POSTGRES_ENABLED = ini_bool("POSTGRES", "enabled", False)
+SQLITE_ENABLED = ini_bool("SQLITE", "enabled", True)
+
+
+def _sqlite_databases():
     sqlite_path = ini_get("SQLITE", "path", "instance")
     sqlite_db_name = ini_get("SQLITE", "database", "bridge_app.db")
     if not os.path.isabs(sqlite_path):
         sqlite_path = os.path.join(BASE_DIR.parent, sqlite_path)
     os.makedirs(sqlite_path, exist_ok=True)
-    DATABASES = {
+    return {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": os.path.join(sqlite_path, sqlite_db_name),
         }
     }
-    if DATABASES["default"]["ENGINE"] != "django.db.backends.sqlite3":
+
+
+if ENVIRONMENT == "production":
+    if POSTGRES_ENABLED == SQLITE_ENABLED:
         raise RuntimeError(
-            "Development must use SQLite. [POSTGRES] is disabled in development "
-            "(set [Server] environment = production to use PostgreSQL)."
+            "Production must enable exactly one database. Set [POSTGRES] "
+            "enabled = true (requires a verified connection) OR [SQLITE] "
+            "enabled = true — not both, and not neither."
         )
+    if POSTGRES_ENABLED:
+        pool_max_age = ini_int("DatabasePool", "max_age_seconds", 60)
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": ini_get("POSTGRES", "database", "bridge_db"),
+                "USER": ini_get("POSTGRES", "username", "postgres"),
+                "PASSWORD": ini_get("POSTGRES", "password", ""),
+                "HOST": ini_get("POSTGRES", "host", "localhost"),
+                "PORT": ini_get("POSTGRES", "port", "5432"),
+                "CONN_MAX_AGE": pool_max_age,
+            }
+        }
+        # PostgreSQL enabled but the engine did not resolve — fail fast instead
+        # of silently falling back to SQLite.
+        if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+            raise RuntimeError(
+                "[POSTGRES] enabled = true but the engine did not resolve to "
+                "django.db.backends.postgresql."
+            )
+    else:
+        DATABASES = _sqlite_databases()
+else:
+    # Development is strictly SQLite — the enabled flags are ignored here;
+    # [POSTGRES] is never used in development.
+    DATABASES = _sqlite_databases()
 
 # ---------------------------------------------------------------------------
 # Production invariants (enforced regardless of which settings module loads)
@@ -194,16 +225,22 @@ if ENVIRONMENT == "production":
     if ini_bool("CELERY", "always_eager", fallback=False):
         raise RuntimeError("Production must not run Celery eagerly ([CELERY] always_eager = false).")
 
-    # Hardened transport defaults for production.
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    # HSTS only over HTTPS; 31536000s = 1 year. Requires the reverse proxy to
-    # set X-Forwarded-Proto (deploy/nginx.conf does).
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True
+    # Transport hardening. HTTPS-only behavior (SSL redirect, HSTS, secure
+    # cookies, proxy-header trust) applies ONLY when the app is served behind a
+    # TLS-terminating reverse proxy ([ReverseProxy] enabled = true —
+    # deploy/nginx.conf). Running daphne directly (plain HTTP, no TLS) must NOT
+    # redirect to https:// — the redirect target would never answer, so the app
+    # would be unreachable on both schemes.
+    if REVERSE_PROXY_ENABLED:
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+        # HSTS only over HTTPS; 31536000s = 1 year. Requires the reverse proxy
+        # to set X-Forwarded-Proto (deploy/nginx.conf does).
+        SECURE_HSTS_SECONDS = 31536000
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
+        SECURE_SSL_REDIRECT = True
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 else:
     # Development convenience: console email backend (no SMTP server needed).
@@ -292,11 +329,12 @@ SPECTACULAR_SETTINGS = {
 # ---------------------------------------------------------------------------
 # CORS (Nuxt frontend on a different origin during dev)
 # ---------------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = [
-    o.strip()
-    for o in ini_get("CORS", "allowed_origins", "http://localhost:3000,http://127.0.0.1:3000").split(",")
-    if o.strip()
-]
+# LiveList: re-reads [CORS] allowed_origins from config.ini on every access
+# (corsheaders iterates/contains it per request), so origin changes apply
+# WITHOUT a restart.
+CORS_ALLOWED_ORIGINS = live_list(
+    "CORS", "allowed_origins", ["http://localhost:3000", "http://127.0.0.1:3000"]
+)
 CORS_ALLOW_CREDENTIALS = True
 
 # ---------------------------------------------------------------------------
@@ -483,8 +521,8 @@ DATABASE_POOL_ENABLED = ini_bool("DatabasePool", "enabled", False)
 # ---------------------------------------------------------------------------
 # Reverse proxy (config.ini [ReverseProxy]) — nginx config ships in
 # deploy/nginx.conf; the app only needs to trust the proxy headers.
+# REVERSE_PROXY_ENABLED is defined near the top of this file (the production
+# transport-hardening block above depends on it).
 # ---------------------------------------------------------------------------
-REVERSE_PROXY_ENABLED = ini_bool("ReverseProxy", "enabled", False)
 if REVERSE_PROXY_ENABLED and ENVIRONMENT == "production":
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True

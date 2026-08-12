@@ -19,6 +19,105 @@ def _snapshot():
     return json.loads(json.dumps(get_config_dict()))
 
 
+def _restore_db_flags(client, snapshot):
+    """Restore the POSTGRES/SQLITE enabled flags after a DB-engine test."""
+    client.put(
+        "/api/v1/config/",
+        data=json.dumps({
+            "sections": {
+                "POSTGRES": {"enabled": snapshot["POSTGRES"]["enabled"]},
+                "SQLITE": {"enabled": snapshot["SQLITE"]["enabled"]},
+            }
+        }),
+        content_type="application/json",
+    )
+
+
+def test_disable_sqlite_enables_postgres_when_verified(client, settings, monkeypatch):
+    """Disabling SQLite must ENABLE PostgreSQL (exactly-one invariant), after
+    the PostgreSQL connection is verified."""
+    from apps.core.services import config_service
+
+    monkeypatch.setattr(config_service, "verify_postgres_connection", lambda *a, **k: (True, ""))
+    snapshot = _snapshot()
+    try:
+        r = client.put(
+            "/api/v1/config/",
+            data=json.dumps({"sections": {"SQLITE": {"enabled": "false"}}}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+        assert r.json().get("db_fallback") is None
+        cfg = get_config_dict()
+        assert cfg["SQLITE"]["enabled"] == "false"
+        assert cfg["POSTGRES"]["enabled"] == "true"
+    finally:
+        _restore_db_flags(client, snapshot)
+
+
+def test_disable_sqlite_unverified_keeps_sqlite(client, settings, monkeypatch):
+    """If PostgreSQL cannot be verified, disabling SQLite must not persist —
+    SQLite stays enabled and the response carries db_fallback."""
+    from apps.core.services import config_service
+
+    monkeypatch.setattr(
+        config_service, "verify_postgres_connection", lambda *a, **k: (False, "connection refused")
+    )
+    snapshot = _snapshot()
+    try:
+        r = client.put(
+            "/api/v1/config/",
+            data=json.dumps({"sections": {"SQLITE": {"enabled": "false"}}}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["db_fallback"] is not None
+        assert body["db_fallback"]["applied"] == "sqlite"
+        cfg = get_config_dict()
+        assert cfg["SQLITE"]["enabled"] == "true"
+        assert cfg["POSTGRES"]["enabled"] == "false"
+    finally:
+        _restore_db_flags(client, snapshot)
+
+
+def test_disable_postgres_enables_sqlite(client, settings):
+    """Disabling PostgreSQL must enable SQLite (no gate needed)."""
+    snapshot = _snapshot()
+    try:
+        r = client.put(
+            "/api/v1/config/",
+            data=json.dumps({"sections": {"POSTGRES": {"enabled": "false"}}}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+        cfg = get_config_dict()
+        assert cfg["POSTGRES"]["enabled"] == "false"
+        assert cfg["SQLITE"]["enabled"] == "true"
+    finally:
+        _restore_db_flags(client, snapshot)
+
+
+def test_enable_postgres_verified_disables_sqlite(client, settings, monkeypatch):
+    """Enabling PostgreSQL directly (verified) must disable SQLite."""
+    from apps.core.services import config_service
+
+    monkeypatch.setattr(config_service, "verify_postgres_connection", lambda *a, **k: (True, ""))
+    snapshot = _snapshot()
+    try:
+        r = client.put(
+            "/api/v1/config/",
+            data=json.dumps({"sections": {"POSTGRES": {"enabled": "true"}}}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+        cfg = get_config_dict()
+        assert cfg["POSTGRES"]["enabled"] == "true"
+        assert cfg["SQLITE"]["enabled"] == "false"
+    finally:
+        _restore_db_flags(client, snapshot)
+
+
 def test_get_full_config(client, settings):
     settings.ALLOWED_HOSTS = list(settings.ALLOWED_HOSTS) + ["testserver"]
     r = client.get("/api/v1/config/")

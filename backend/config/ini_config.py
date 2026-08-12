@@ -6,7 +6,7 @@ the original original app). Returns a cached ConfigParser instance; settings use
 it directly with typed getters and safe fallbacks.
 
 Also provides the shared read/write helpers used by the System Configuration
-API (`GET/PUT /api/v1/config/`) and the `scripts/setup_db.py` bootstrap:
+API (`GET/PUT /api/v1/config/`) and the `scripts/activate_postgre.py` bootstrap:
 - `get_config_dict()`  — read the whole file as {section: {key: value}}
 - `set_ini_value()`    — write one key, preserving comments/formatting
 """
@@ -19,14 +19,21 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_PATH = BACKEND_DIR / "config.ini"
 
 # Keys whose change requires an application restart to take effect (core).
+# Values outside this set are consumed live (config/live_settings.py) or only
+# via the config API/frontend, so they apply without a restart. A save that
+# touches any of these triggers the validated auto-restart (the backend
+# re-executes itself in place); see apps/core/views_config.py.
 CORE_RESTART_KEYS = {
     "Server": {"host", "port", "timezone", "allowed_hosts", "environment", "debug"},
-    "POSTGRES": {"host", "port", "database", "username", "password"},
-    "SQLITE": {"path", "database"},
+    "POSTGRES": {"host", "port", "database", "username", "password", "enabled"},
+    "SQLITE": {"path", "database", "enabled"},
     "CELERY": {"broker_url", "result_backend", "always_eager"},
     "SECURITY": {"secret_key", "encryption_key"},
     # OTel initializes at startup — changes need a restart.
     "OPENTELEMETRY": {"enabled", "otlp_endpoint", "service_name"},
+    # Transport hardening + DB pool wiring are read once at import.
+    "ReverseProxy": {"enabled"},
+    "DatabasePool": {"enabled", "max_age_seconds"},
 }
 
 
@@ -40,6 +47,24 @@ def load_ini(path: Path | str | None = None) -> configparser.ConfigParser:
     config = configparser.ConfigParser(interpolation=None)
     config.read(path or DEFAULT_PATH)
     return config
+
+
+def find_section(config, name):
+    """Case-insensitive section lookup.
+
+    config.ini mixes section casing ([Email], [RateLimit], [RetryQueue],
+    [Logging], ...) while settings look up EMAIL/RateLimit/RETRY_QUEUE/LOGGING.
+    configparser section access is case-sensitive, so a direct get() would
+    silently fall back to defaults — find_section() resolves either case.
+    Returns the section mapping (a configparser Section) or None.
+    """
+    if name in config:
+        return config[name]
+    lowered = name.lower()
+    for key in config:
+        if key.lower() == lowered:
+            return config[key]
+    return None
 
 
 def get(path: Path | str | None = None) -> configparser.ConfigParser:

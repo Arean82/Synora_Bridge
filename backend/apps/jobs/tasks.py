@@ -17,10 +17,11 @@ from urllib.parse import urlparse
 
 import requests
 from celery import shared_task
-from django.conf import settings
 from django.utils import timezone
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from config.live_settings import live
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +300,7 @@ def cleanup_failed_payloads():
 
     from apps.jobs.models import FailedPayload
 
-    retention_minutes = getattr(settings, "RETRY_QUEUE_RETENTION_MINUTES", 60)
+    retention_minutes = live.RETRY_QUEUE_RETENTION_MINUTES
     cutoff = timezone.now() - timedelta(minutes=retention_minutes)
     deleted, _ = FailedPayload.objects.filter(timestamp__lt=cutoff).delete()
     if deleted:

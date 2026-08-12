@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python 3.12+, Node 20+ (for the frontend build)
-- PostgreSQL (production) or SQLite (development)
+- SQLite (development; production standalone default) or PostgreSQL (production opt-in via `[POSTGRES] enabled = true`)
 - Redis or Memurai (channel layer + Celery broker)
 
 ## Development (Windows)
@@ -30,10 +30,11 @@ Or use `scripts\dev_backend.bat` and `scripts\dev_frontend.bat`.
 
 1. **Configure** `backend/config.ini`:
    - `[Server] environment = production`
-   - `[POSTGRES]` — host/port/database/username/password
+   - Database engine: `[SQLITE] enabled = true` (default — no setup, auto-creates the DB) **or** `[POSTGRES] enabled = true` + `[SQLITE] enabled = false` (the Settings GUI verifies the PostgreSQL connection before the switch is saved). Exactly one must be enabled.
+   - `[POSTGRES]` — host/port/database/username/password (only when using PostgreSQL)
    - `[SECURITY]` — `secret_key` + `encryption_key` (required; app refuses to start without them)
    - `[CELERY] always_eager = false`
-   - `[ReverseProxy] enabled = true`, `[DatabasePool] enabled = true` if using nginx/pgbouncer
+   - `[ReverseProxy] enabled = true`, `[DatabasePool] enabled = true` if using nginx/pgbouncer. **Important:** without `[ReverseProxy] enabled = true` the app serves plain HTTP (no HTTPS redirect, no secure cookies) so daphne can be tested directly at `http://localhost:8000/`. HTTPS is provided by the TLS-terminating proxy (deploy/nginx.conf), which must set `X-Forwarded-Proto: https` — the app only enforces HTTPS redirection/HSTS when the proxy flag is on.
 
 2. **Migrate + collect static:**
 
@@ -64,8 +65,8 @@ celery -A config.celery beat -l info                                # scheduler
 
 | Section | Purpose |
 |---|---|
-| `[Server]` | host, port, debug, **environment** (development→SQLite / production→PostgreSQL), timezone (fail-fast validated), allowed_hosts |
-| `[POSTGRES]` / `[SQLITE]` | database connection settings |
+| `[Server]` | host, port, debug, **environment** (development→SQLite locked / production→hardened), timezone (fail-fast validated), allowed_hosts |
+| `[POSTGRES]` / `[SQLITE]` | database connection settings + **enabled** flag (the production engine selector — exactly one must be true; dev is locked to SQLite, prod postgresql requires a verified connection) |
 | `[CELERY]` | broker_url, result_backend, always_eager, worker concurrency/prefetch, time limits |
 | `[SECURITY]` | secret_key, encryption_key (AES-256-GCM master key) |
 | `[CORS]` | allowed frontend origins |

@@ -8,10 +8,11 @@ infrastructure.
 import logging
 from datetime import timedelta
 
-from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
+
+from config.live_settings import live
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,10 @@ _last_email_sent: dict = {}
 def should_throttle(job_id) -> bool:
     """True if an email for this job should be suppressed (cooldown active)."""
     try:
-        if not settings.EMAIL_THROTTLE_ENABLED:
+        if not live.EMAIL_THROTTLE_ENABLED:
             return False
         last = _last_email_sent.get(job_id)
-        if last and (timezone.now() - last) < timedelta(minutes=settings.EMAIL_THROTTLE_MINUTES):
+        if last and (timezone.now() - last) < timedelta(minutes=live.EMAIL_THROTTLE_MINUTES):
             return True
         _last_email_sent[job_id] = timezone.now()
         return False
@@ -36,7 +37,7 @@ def should_throttle(job_id) -> bool:
 
 def send_failure_alert(job_id, template_name, dest_url, error_msg):
     """Dispatch an email alert if [EMAIL] mode is configured."""
-    mode = settings.EMAIL_MODE
+    mode = live.EMAIL_MODE
     if mode in (None, "", "none"):
         return
 
@@ -44,7 +45,7 @@ def send_failure_alert(job_id, template_name, dest_url, error_msg):
         logger.info("Email alert for Job %s throttled (cooldown active).", job_id)
         return
 
-    recipients = settings.EMAIL_RECIPIENTS
+    recipients = live.EMAIL_RECIPIENTS
     if not recipients:
         logger.info("Email service is active but no recipients configured.")
         return
@@ -70,7 +71,7 @@ def send_failure_alert(job_id, template_name, dest_url, error_msg):
     message = EmailMultiAlternatives(
         subject=subject,
         body="Please view this email in an HTML compatible client.",
-        from_email=settings.EMAIL_SENDER,
+        from_email=live.EMAIL_SENDER,
         to=recipients,
     )
     message.attach_alternative(html_content, "text/html")

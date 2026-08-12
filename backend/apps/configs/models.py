@@ -27,8 +27,10 @@ class Template(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
     # Stored, indexed URL slug (scale item: O(1) pull-endpoint routing instead
-    # of a full-table Python scan on every pull request).
-    slug = models.SlugField(max_length=120, unique=True, db_index=True, blank=True)
+    # of a full-table Python scan on every pull request). unique=True already
+    # creates the index — disable SlugField's implicit db_index so PostgreSQL
+    # does not try to create a second pattern index; see migration 0002.
+    slug = models.SlugField(max_length=120, unique=True, db_index=False, blank=True)
 
     execution_mode = models.CharField(max_length=50, choices=EXECUTION_MODES, default="push")
     pull_method = models.CharField(max_length=10, default="GET")
