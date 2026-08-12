@@ -5,6 +5,7 @@
 definePageMeta({ title: 'Settings', layout: 'default' });
 
 const { api } = useApi();
+const { setLayout } = useUiLayout();
 
 type ConfigEntry = { value: any; type: string; options?: string[] };
 const config = ref<Record<string, Record<string, ConfigEntry>>>({});
@@ -210,6 +211,9 @@ const save = async () => {
       savedMsg.value = `Saved ${(res.updated || []).length} setting(s). Applied without restart.`;
     }
     await load();
+    // Apply the UI.layout choice (sidebar/top) instantly — no reload needed.
+    const uiLayout = String(config.value.UI?.layout?.value ?? 'sidebar');
+    if (uiLayout === 'sidebar' || uiLayout === 'top') setLayout(uiLayout as 'sidebar' | 'top');
   } catch (e: any) {
     error.value = e.message;
   } finally {

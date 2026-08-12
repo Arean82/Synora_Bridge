@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Default layout — sidebar navigation (mirrors the original UI structure).
+// Default layout — sidebar OR top-nav navigation, matching the original Flask
+// layout.html behavior driven by config.ini UI.layout ('sidebar' | 'top').
 const nav = [
   { to: '/', label: 'Dashboard', icon: 'i-heroicons-home' },
   { to: '/templates', label: 'Templates', icon: 'i-heroicons-squares-2x2' },
@@ -12,14 +13,19 @@ const nav = [
 const route = useRoute();
 const { apiBase } = useRuntimeConfig().public;
 const { isDark, toggle } = useTheme();
+const { layout } = useUiLayout();
 const docsViewer = ref<{ show: () => Promise<void> } | null>(null);
 
 const isActive = (to: string) => route.path === to || (to !== '/' && route.path.startsWith(to));
+const navLinkClass = (to: string) =>
+  isActive(to)
+    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
+    : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800';
 </script>
 
 <template>
-  <div class="flex min-h-screen">
-    <!-- Sidebar -->
+  <!-- Sidebar layout (UI.layout = sidebar) -->
+  <div v-if="layout === 'sidebar'" class="flex min-h-screen">
     <aside class="w-60 shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <div class="flex h-16 items-center gap-2 border-b border-slate-200 px-5 dark:border-slate-800">
         <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">Synora</span>
@@ -31,9 +37,7 @@ const isActive = (to: string) => route.path === to || (to !== '/' && route.path.
           :key="item.to"
           :to="item.to"
           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-          :class="isActive(item.to)
-            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'"
+          :class="navLinkClass(item.to)"
         >
           <span :class="item.icon" class="h-4 w-4" />
           {{ item.label }}
@@ -51,21 +55,18 @@ const isActive = (to: string) => route.path === to || (to !== '/' && route.path.
       </div>
     </aside>
 
-    <!-- Main -->
     <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 dark:border-slate-800 dark:bg-slate-900">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">
           {{ route.meta.title || 'Synora Bridge' }}
         </h1>
         <div class="flex items-center gap-3">
-          <!-- Docs viewer (original docs modal parity) -->
           <button
             class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             @click="docsViewer?.show()"
           >
             Docs
           </button>
-          <!-- Theme switcher (original theme.js parity) -->
           <button
             class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             @click="toggle"
@@ -81,7 +82,74 @@ const isActive = (to: string) => route.path === to || (to !== '/' && route.path.
       <main class="flex-1 overflow-y-auto p-6">
         <slot />
       </main>
-      <UiDocsViewer ref="docsViewer" />
     </div>
   </div>
+
+  <!-- Top-navbar layout (UI.layout = top) — Flask _topbar.html parity -->
+  <div v-else class="flex min-h-screen flex-col">
+    <header class="sticky top-0 z-20 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex h-16 items-center justify-between gap-4 px-5">
+        <div class="flex min-w-0 items-center gap-6">
+          <NuxtLink to="/" class="flex shrink-0 items-center gap-2">
+            <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">Synora</span>
+            <span class="text-sm font-medium text-slate-400">Bridge</span>
+          </NuxtLink>
+          <nav class="hidden items-center gap-1 md:flex">
+            <NuxtLink
+              v-for="item in nav"
+              :key="item.to"
+              :to="item.to"
+              class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+              :class="navLinkClass(item.to)"
+            >
+              <span :class="item.icon" class="h-4 w-4" />
+              {{ item.label }}
+            </NuxtLink>
+          </nav>
+        </div>
+        <div class="flex shrink-0 items-center gap-3">
+          <button
+            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="docsViewer?.show()"
+          >
+            Docs
+          </button>
+          <button
+            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="toggle"
+            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            {{ isDark ? '🌙' : '☀️' }}
+          </button>
+          <span class="hidden rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 sm:inline dark:bg-emerald-950 dark:text-emerald-400">
+            Backend: {{ apiBase }}
+          </span>
+        </div>
+      </div>
+      <!-- Mobile: horizontally scrollable nav under the header -->
+      <nav class="flex gap-1 overflow-x-auto px-3 pb-2 md:hidden">
+        <NuxtLink
+          v-for="item in nav"
+          :key="item.to"
+          :to="item.to"
+          class="flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+          :class="navLinkClass(item.to)"
+        >
+          <span :class="item.icon" class="h-4 w-4" />
+          {{ item.label }}
+        </NuxtLink>
+      </nav>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6">
+      <slot />
+    </main>
+
+    <footer class="border-t border-slate-200 p-4 text-center text-xs text-slate-400 dark:border-slate-800">
+      &copy; 2026 Synora Bridge. All rights reserved. A product of
+      <a href="https://SynoraStudio.in" target="_blank" class="font-semibold transition-colors hover:text-indigo-500">SynoraStudio.in</a>.
+    </footer>
+  </div>
+
+  <UiDocsViewer ref="docsViewer" />
 </template>

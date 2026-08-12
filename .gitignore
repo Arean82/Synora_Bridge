@@ -3,14 +3,25 @@ venv/
 backend/.venv/
 .env
 
+# Local runtime configuration — contains REAL secrets (secret_key,
+# encryption_key, DB passwords). Never commit. Template: backend/.env.example.
+backend/config.ini
+backend/config.ini.bak
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Database
+# Databases (any location)
+*.db
+*.sqlite3
 bridge.db
 instance/
+
+# Logs
+*.log
+logs/
 
 # Django
 backend/staticfiles/
