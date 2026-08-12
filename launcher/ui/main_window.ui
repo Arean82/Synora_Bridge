@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>720</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>820</width>
+    <height>520</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Synora Bridge — Stack Launcher</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="rootLayout">
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <property name="leftMargin">
+     <number>14</number>
+    </property>
+    <property name="topMargin">
+     <number>12</number>
+    </property>
+    <property name="rightMargin">
+     <number>14</number>
+    </property>
+    <property name="bottomMargin">
+     <number>8</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="headerLayout">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="brandLabel">
+        <property name="text">
+         <string>Synora Bridge</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="subtitleLabel">
+        <property name="text">
+         <string>Stack Launcher</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="headerSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnStartAll">
+        <property name="text">
+         <string>Start All</string>
+        </property>
+        <property name="role" stdset="0">
+         <string>start</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnStopAll">
+        <property name="text">
+         <string>Stop All</string>
+        </property>
+        <property name="role" stdset="0">
+         <string>stop</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnRestartAll">
+        <property name="text">
+         <string>Restart All</string>
+        </property>
+        <property name="role" stdset="0">
+         <string>restart</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tabDaphne">
+       <attribute name="title">
+        <string>1. Daphne</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="tabDaphneLayout">
+        <item>
+         <layout class="QHBoxLayout" name="tabDaphneControls">
+          <item>
+           <widget class="QLabel" name="dotDaphne">
+            <property name="text">
+             <string>●</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>dot</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="statusDaphne">
+            <property name="text">
+             <string>STOPPED</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="tabDaphneSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnClearDaphne">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStartDaphne">
+            <property name="text">
+             <string>Start</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>start</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStopDaphne">
+            <property name="text">
+             <string>Stop</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>stop</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnRestartDaphne">
+            <property name="text">
+             <string>Restart</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>restart</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QPlainTextEdit" name="consoleDaphne">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>Daphne (ASGI) console — click Start…</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabWorker">
+       <attribute name="title">
+        <string>2. Celery Worker</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="tabWorkerLayout">
+        <item>
+         <layout class="QHBoxLayout" name="tabWorkerControls">
+          <item>
+           <widget class="QLabel" name="dotWorker">
+            <property name="text">
+             <string>●</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>dot</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="statusWorker">
+            <property name="text">
+             <string>STOPPED</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="tabWorkerSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnClearWorker">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStartWorker">
+            <property name="text">
+             <string>Start</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>start</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStopWorker">
+            <property name="text">
+             <string>Stop</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>stop</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnRestartWorker">
+            <property name="text">
+             <string>Restart</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>restart</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QPlainTextEdit" name="consoleWorker">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>Celery worker console — click Start…</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabBeat">
+       <attribute name="title">
+        <string>3. Celery Beat</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="tabBeatLayout">
+        <item>
+         <layout class="QHBoxLayout" name="tabBeatControls">
+          <item>
+           <widget class="QLabel" name="dotBeat">
+            <property name="text">
+             <string>●</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>dot</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="statusBeat">
+            <property name="text">
+             <string>STOPPED</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="tabBeatSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnClearBeat">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStartBeat">
+            <property name="text">
+             <string>Start</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>start</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStopBeat">
+            <property name="text">
+             <string>Stop</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>stop</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnRestartBeat">
+            <property name="text">
+             <string>Restart</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>restart</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QPlainTextEdit" name="consoleBeat">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>Celery beat (scheduler) console — click Start…</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabFrontend">
+       <attribute name="title">
+        <string>4. Frontend (Nuxt)</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="tabFrontendLayout">
+        <item>
+         <layout class="QHBoxLayout" name="tabFrontendControls">
+          <item>
+           <widget class="QLabel" name="dotFrontend">
+            <property name="text">
+             <string>●</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>dot</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="statusFrontend">
+            <property name="text">
+             <string>STOPPED</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="tabFrontendSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnClearFrontend">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>clear</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStartFrontend">
+            <property name="text">
+             <string>Start</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>start</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnStopFrontend">
+            <property name="text">
+             <string>Stop</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>stop</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnRestartFrontend">
+            <property name="text">
+             <string>Restart</string>
+            </property>
+            <property name="role" stdset="0">
+             <string>restart</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QPlainTextEdit" name="consoleFrontend">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="placeholderText">
+           <string>Nuxt dev console — click Start…</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="sizeGripEnabled">
+    <bool>true</bool>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
