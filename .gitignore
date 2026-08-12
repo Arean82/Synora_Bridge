@@ -8,6 +8,9 @@ backend/.venv/
 backend/config.ini
 backend/config.ini.bak
 
+# Launcher runtime state (frontend_port, theme prefs) — regenerated on use.
+launcher/launcher.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
