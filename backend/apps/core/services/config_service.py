@@ -41,6 +41,8 @@ DROPDOWN_OPTIONS = {
     # All boolean keys get string options ("true"/"false") so the GUI dropdown
     # matches the stored string value (a `:value="true"` select wouldn't).
     "Server.debug": ["true", "false"],
+    "POSTGRES.enabled": ["true", "false"],
+    "SQLITE.enabled": ["true", "false"],
     "OPENTELEMETRY.enabled": ["true", "false"],
     "OPENTELEMETRY.instrument_django": ["true", "false"],
     "OPENTELEMETRY.instrument_requests": ["true", "false"],
@@ -77,10 +79,72 @@ def update_config(changes: dict, path=None) -> dict:
     changes: {section: {key: value}} (values are strings).
     Returns {updated: [...], restart_required: bool, restart_keys: [...]}.
     Raises ValueError on unknown sections/keys (no silent creation of junk).
+
+    Database-engine handling (production selector = per-section enabled flags):
+    - Exactly one database stays enabled. Touching either [POSTGRES] enabled or
+      [SQLITE] enabled pins its value and sets the other to the complement:
+      disabling SQLite therefore ENABLES PostgreSQL (and vice versa) — the
+      production invariants refuse to boot with both (or neither) enabled.
+    - PostgreSQL gate: switching the effective engine TO PostgreSQL (whether by
+      enabling POSTGRES or by disabling SQLite) requires a verified connection.
+      On failure the switch is NOT persisted — SQLite stays enabled and the
+      response carries `db_fallback` so the UI can tell the user why.
     """
     current = get_config_dict(path)
     updated: list[str] = []
     restart_keys: list[str] = []
+    db_fallback: dict | None = None
+
+    changes = dict(changes or {})
+
+    # --- Database-engine selector: exactly one database stays enabled ---
+    pg_section = dict(changes.get("POSTGRES", {}) or {})
+    sq_section = dict(changes.get("SQLITE", {}) or {})
+    pg_toggle = pg_section.get("enabled")
+    sq_toggle = sq_section.get("enabled")
+    pg_already_on = str(current.get("POSTGRES", {}).get("enabled", "false")).lower() == "true"
+    if pg_toggle is not None or sq_toggle is not None:
+        # Effective target: a pinned POSTGRES.enabled wins; otherwise it is the
+        # complement of the payload's SQLITE.enabled.
+        if pg_toggle is not None:
+            want_pg = str(pg_toggle).lower() == "true"
+        else:
+            want_pg = str(sq_toggle).lower() != "true"
+
+        if want_pg and not pg_already_on:
+            # Enabling PostgreSQL (directly, or by disabling SQLite) requires a
+            # verified connection.
+            merged = dict(current.get("POSTGRES", {}))
+            for k, v in pg_section.items():
+                merged[k] = str(v)
+            ok, err = verify_postgres_connection(
+                merged.get("host", "localhost"),
+                merged.get("port", "5432"),
+                merged.get("database", "bridge_db"),
+                merged.get("username", "postgres"),
+                merged.get("password", ""),
+            )
+            if not ok:
+                # Not verified: drop the PG switch and keep SQLite enabled (the
+                # checkbox-parity defaulting below would otherwise flip it to
+                # false and disable every database).
+                changes.pop("POSTGRES", None)
+                changes.setdefault("SQLITE", {})["enabled"] = "true"
+                db_fallback = {
+                    "requested": "postgresql",
+                    "applied": "sqlite",
+                    "reason": f"PostgreSQL connection not verified: {err}",
+                }
+            else:
+                changes.setdefault("POSTGRES", {})["enabled"] = "true"
+                changes.setdefault("SQLITE", {})["enabled"] = "false"
+        elif want_pg:
+            # PostgreSQL already enabled — keep it and switch SQLite off.
+            changes.setdefault("SQLITE", {})["enabled"] = "false"
+        else:
+            # SQLite is the target — switch PostgreSQL off (no gate needed).
+            changes.setdefault("SQLITE", {})["enabled"] = "true"
+            changes.setdefault("POSTGRES", {})["enabled"] = "false"
 
     for section, keys in (changes or {}).items():
         if section not in current:
@@ -104,11 +168,37 @@ def update_config(changes: dict, path=None) -> dict:
                     set_ini_value(path or _default_path(), section, key, "false")
                     updated.append(f"{section}.{key}")
 
-    return {
+    result: dict = {
         "updated": sorted(set(updated)),
         "restart_required": bool(restart_keys),
         "restart_keys": sorted(set(restart_keys)),
     }
+    if db_fallback:
+        result["db_fallback"] = db_fallback
+    return result
+
+
+def verify_postgres_connection(host, port, database, username, password, timeout=5):
+    """Attempt a real connection to PostgreSQL. Returns (ok, error).
+
+    Stateless: never writes to config.ini, never logs credentials. A short
+    connect_timeout keeps the UI responsive when the host is unreachable.
+    """
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(
+            host=host or "localhost",
+            port=port or "5432",
+            dbname=database or "bridge_db",
+            user=username or "postgres",
+            password=password or "",
+            connect_timeout=timeout,
+        )
+        conn.close()
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 — surface any connection error to the UI
+        return False, str(exc)
 
 
 def _default_path():

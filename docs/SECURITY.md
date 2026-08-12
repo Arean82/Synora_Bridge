@@ -30,7 +30,7 @@ python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 
 - `backend/config.ini` fail-fast validation:
   - Invalid `[Server] timezone` → startup aborts with a clear message (IANA list required).
-  - Production invariants: `environment = production` requires PostgreSQL, real `secret_key`, `encryption_key`, `always_eager = false`, and enables secure cookies (`SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`) + trusted-proxy headers when `[ReverseProxy] enabled = true`.
+  - Production invariants: `environment = production` requires real `secret_key`, `encryption_key`, `always_eager = false`. HTTPS-only behavior (SSL redirect `SECURE_SSL_REDIRECT`, HSTS, secure cookies `SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE`, trusted `X-Forwarded-Proto`) activates **only** when `[ReverseProxy] enabled = true` — i.e. daphne is behind a TLS-terminating proxy (deploy/nginx.conf). Running daphne directly (no proxy) serves plain HTTP and never redirects to https (which would dead-end on a TLS-less listener). The database engine is the section whose `enabled = true` — `[SQLITE]` (standalone default) or `[POSTGRES]`, which the Settings GUI verifies (stateless `POST /api/v1/config/verify-db/`) before the switch is persisted; unverified PostgreSQL falls back to SQLite with a user-visible message. Exactly one of the two flags must be enabled.
 - `.env` (root) holds only the two secret overrides; it is gitignored.
 
 ## Audit

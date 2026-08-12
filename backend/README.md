@@ -2,7 +2,7 @@
 
 The Universal API Bridge rebuilt on **Django 6 + daphne** (replacing the Flask app; original preserved on the `Flask` branch).
 
-**Stack:** Django 6.0.8 · DRF `/api/v1/*` · Strawberry GraphQL (dynamic schema) · Channels WebSockets · Celery + beat · drf-spectacular (hey-api/dart-dio client generation) · Redis/Memurai channel layer + broker · PostgreSQL (prod) / SQLite (dev).
+**Stack:** Django 6.0.8 · DRF `/api/v1/*` · Strawberry GraphQL (dynamic schema) · Channels WebSockets · Celery + beat · drf-spectacular (hey-api/dart-dio client generation) · Redis/Memurai channel layer + broker · SQLite (dev + standalone prod) / PostgreSQL (prod opt-in via [POSTGRES] enabled).
 
 ## Quick start (development)
 
@@ -15,7 +15,7 @@ pip install -r requirements.txt
 # 2. Configure (optional — sensible defaults already set)
 #    backend/config.ini  — same structure as the original Flask app.
 #    [Server] environment = development  → SQLite (instance/bridge_app.db)
-#    [Server] environment = production   → PostgreSQL ([POSTGRES] section)
+#    [Server] environment = production   → hardened; engine per [POSTGRES] enabled / [SQLITE] enabled (exactly one true)
 
 # 3. Migrate + seed a demo dataset (17 connections, 34 templates, jobs, audit)
 python manage.py migrate
@@ -39,7 +39,7 @@ npm run dev            # http://localhost:3000
 ## Production
 
 ```powershell
-# config.ini: [Server] environment = production + fill [POSTGRES], [SECURITY]
+# config.ini: [Server] environment = production + [SECURITY]; set [POSTGRES] enabled = true (+ [SQLITE] enabled = false) + fill [POSTGRES] to use PostgreSQL — default is SQLite ([SQLITE] enabled = true, no setup)
 #   [SECURITY] secret_key + encryption_key required (app refuses to start without them)
 #   [CELERY] always_eager must be false
 python manage.py migrate --settings=config.settings
@@ -61,7 +61,7 @@ Optional ops components (config-gated, templates in `deploy/`):
 
 `backend/config.ini` mirrors the original Flask config: `[Server]` (incl. `environment`), `[POSTGRES]`, `[SQLITE]`, `[CELERY]`, `[SECURITY]`, `[CORS]`, `[UI]`, `[OPENTELEMETRY]`, `[RateLimit]`, `[Cache]`, `[DatabasePool]`, `[ReverseProxy]`, `[Logging]`, `[RetryQueue]`, `[Swagger]`, `[Email]`.
 
-The `environment` flag selects the database: **development → SQLite, production → PostgreSQL**.
+The `environment` flag selects the hardening level; the database engine is the section whose `enabled = true`: **development → SQLite (locked), production → [SQLITE] enabled (standalone default, auto-creates the DB) or [POSTGRES] enabled** (the Settings GUI verifies the PG connection before it will save the switch).
 
 ## Key endpoints
 

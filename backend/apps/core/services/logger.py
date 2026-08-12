@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def log_job(job_id, status, payload, http_status=None, error_message=None):
-    """Record the outcome of a push job execution."""
+    """Record the outcome of a push job execution.
+
+    Best-effort by design: never raises and never prints a traceback — job
+    execution must not depend on job-log persistence succeeding.
+    """
     from apps.jobs.models import Job, JobLog
 
     try:
@@ -30,35 +34,70 @@ def log_job(job_id, status, payload, http_status=None, error_message=None):
             status=status,
             http_status=http_status,
             error_message=error_message,
-            payload_json=payload,
+            payload_json=_json_safe(payload),
         )
-    except Exception:
-        logger.exception("Failed to write job log for job %s", job_id)
+    except Exception as exc:
+        logger.warning("Could not write job log for job %s: %s", job_id, exc)
+
+
+def _json_safe(payload):
+    """Return a JSON-serializable payload, falling back to ``str()`` when the
+    payload contains non-serializable objects (datetimes, Decimals, ...).
+    Never raises."""
+    if payload is None:
+        return None
+    try:
+        __import__("json").dumps(payload)
+        return payload
+    except (TypeError, ValueError):
+        return str(payload)
+
+
+def _payload_bytes(payload):
+    """UTF-8 byte size of a JSON payload; never raises."""
+    safe = _json_safe(payload)
+    if safe is None:
+        return 0
+    return len(__import__("json").dumps(safe).encode("utf-8"))
+
+
+def _record_count(payload):
+    """Best-effort transaction record count for an audit payload.
+
+    Payloads may be a list of records, a dict whose ``data`` value is a list
+    of records (the shape push jobs produce), a dict whose ``data`` value is a
+    dict, or a scalar. Never raises; returns at least 1.
+    """
+    if isinstance(payload, list):
+        return len(payload)
+    if isinstance(payload, dict):
+        data = payload.get("data")
+        if isinstance(data, list):
+            return len(data)
+        if isinstance(data, dict):
+            return len(data.values())
+    return 1
 
 
 def log_audit(mode, caller, payload, endpoint=None, template_id=None, status="SUCCESS"):
-    """Log every data transaction to the Universal Audit Engine."""
+    """Log every data transaction to the Universal Audit Engine.
+
+    Best-effort by design: never raises and never prints a traceback — payload
+    delivery must not depend on audit-log persistence succeeding.
+    """
     from apps.core.models import AuditLog
 
     try:
-        payload_bytes = len(__import__("json").dumps(payload).encode("utf-8")) if payload else 0
-        if isinstance(payload, list):
-            record_count = len(payload)
-        elif isinstance(payload, dict) and payload.get("data"):
-            record_count = len(payload["data"].values())
-        else:
-            record_count = 1
-
         AuditLog.objects.create(
             transaction_id=uuid.uuid4(),
             mode=mode,
             caller=caller,
-            bytes_transferred=payload_bytes,
-            record_count=record_count,
+            bytes_transferred=_payload_bytes(payload),
+            record_count=_record_count(payload),
             status=status,
             endpoint=endpoint,
             template_id=template_id,
-            payload_json=payload,
+            payload_json=_json_safe(payload),
         )
-    except Exception:
-        logger.exception("Failed to write audit log")
+    except Exception as exc:
+        logger.warning("Could not write audit log: %s", exc)

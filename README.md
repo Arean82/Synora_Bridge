@@ -75,7 +75,7 @@ All runtime configuration lives in `backend/config.ini` (same structure as the o
 
 ```ini
 [Server]
-environment = development    ; development → SQLite (instance/) · production → PostgreSQL
+environment = development    ; development → SQLite (locked) · production → SQLite or PostgreSQL ([POSTGRES]/[SQLITE] enabled flags)
 ```
 
 See `backend/README.md` → "Configuration file" for the full section reference.

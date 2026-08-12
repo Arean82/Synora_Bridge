@@ -1,4 +1,10 @@
-"""Add indexed, unique slug to Template with backfill for existing rows."""
+"""Add indexed, unique slug to Template with backfill for existing rows.
+
+Note: SlugField defaults to db_index=True. It must be explicitly disabled here
+because unique=True already creates the index, and the implicit slug index
+makes PostgreSQL try to create the same pattern index twice
+(relation "configs_template_slug_..._like" already exists). Fixed 2026-08-12.
+"""
 import re
 
 from django.db import migrations, models
@@ -33,12 +39,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="template",
             name="slug",
-            field=models.SlugField(max_length=120, blank=True, db_index=True, null=True),
+            field=models.SlugField(max_length=120, blank=True, db_index=False, null=True),
         ),
         migrations.RunPython(backfill_slugs, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="template",
             name="slug",
-            field=models.SlugField(max_length=120, unique=True, db_index=True, blank=True),
+            field=models.SlugField(max_length=120, unique=True, db_index=False, blank=True),
         ),
     ]

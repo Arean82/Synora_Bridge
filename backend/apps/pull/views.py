@@ -14,7 +14,6 @@ import logging
 import functools
 
 import redis.exceptions
-from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
@@ -22,6 +21,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 from django_ratelimit.decorators import ratelimit
 
 from apps.configs.models import Template
+from config.live_settings import live
 from apps.core.errors import api_error_response
 from apps.core.exceptions import APIError
 from apps.pull.services.async_fetch import fetch_all_sources_async
@@ -63,7 +63,7 @@ def _pull_cache_key(slug, dest):
 
 
 def _get_cached(slug, dest):
-    if not settings.PULL_CACHE_ENABLED:
+    if not live.PULL_CACHE_ENABLED:
         return None
     from django.core.cache import cache
 
@@ -76,12 +76,12 @@ def _get_cached(slug, dest):
 
 
 def _set_cached(slug, dest, value) -> None:
-    if not settings.PULL_CACHE_ENABLED:
+    if not live.PULL_CACHE_ENABLED:
         return
     from django.core.cache import cache
 
     try:
-        cache.set(_pull_cache_key(slug, dest), value, timeout=settings.PULL_CACHE_TTL_SECONDS)  # type: ignore[arg-type]
+        cache.set(_pull_cache_key(slug, dest), value, timeout=live.PULL_CACHE_TTL_SECONDS)  # type: ignore[arg-type]
     except Exception:
         # Fail-open: cache write failure is non-fatal.
         logger.warning("Pull cache write failed (Redis down?) — skipping cache.", exc_info=True)
@@ -113,8 +113,11 @@ def _dest_slug(name):
 
 
 def _rate_limit_config(group=None, request=None):
-    """Return (rate, period) from config.ini [RateLimit] for django-ratelimit."""
-    return f"{settings.RATE_LIMIT_RATE}/{settings.RATE_LIMIT_PERIOD}"
+    """Return (rate, period) from config.ini [RateLimit] for django-ratelimit.
+
+    Read live so a [RateLimit] change applies without a restart.
+    """
+    return f"{live.RATE_LIMIT_RATE}/{live.RATE_LIMIT_PERIOD}"
 
 
 def safe_ratelimit(*args, **kwargs):
@@ -142,7 +145,7 @@ def safe_ratelimit(*args, **kwargs):
 
 def _maybe_rate_limited(request):
     """If rate limiting is enabled and the request was limited, return a 429."""
-    if settings.RATE_LIMIT_ENABLED and getattr(request, "limited", False):
+    if live.RATE_LIMIT_ENABLED and getattr(request, "limited", False):
         return JsonResponse(
             {"status": "error", "message": "Rate limit exceeded. Try again later.", "code": 429},
             status=429,
