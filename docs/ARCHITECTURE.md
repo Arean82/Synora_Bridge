@@ -24,7 +24,6 @@
 ## Modular app layout
 
 Each feature is a self-contained Django app under `backend/apps/` owning its models, serializers, viewsets, router, services and URLs:
-
 | App               | Responsibility                                                                 |
 | ----------------- | ------------------------------------------------------------------------------ |
 | `core`          | Shared services (encryption, audit, email, OTel, errors), AppSetting, AuditLog |
@@ -52,6 +51,16 @@ URLs compose in `config/api_router.py` — adding a feature = register its route
 - **Per-connection docs**: `/api/v1/docs/<id>/` (Swagger UI from the stored spec) and `/api/v1/graphql/test/<id>/` (GraphiQL for GraphQL connections).
 - **Validation utilities**: `/api/v1/connections/validate/` (SSRF-hardened spec validation), `/api/v1/test_mapping/` (field-mapping preview), `/api/v1/bridge/graphql_introspect/`.
 - **System Configuration**: `GET/PUT /api/v1/config/` reads/writes the entire `config.ini` (typed values, restart-required detection) for the Settings GUI.
+
+## Stack launcher (local development GUI)
+
+`launcher/` is a PySide6 desktop app that runs the local stack from one window — **daphne**, **celery worker**, **celery beat** and the **Nuxt frontend** — with per-service Start/Stop/Restart, live-log tabs, port settings and qt-material themes (Light/Dark/Auto + Material accent submenu). The layout lives in `launcher/ui/main_window.ui` (Qt Designer, restylable) while the menu bar is built in Python. It packages into a standalone exe with PyInstaller:
+
+```
+backend\.venv\Scripts\pyinstaller.exe launcher.spec --noconfirm
+```
+
+See `docs/INSTALLATION_MANUAL.md` for the beginner walkthrough.
 
 ## Security model
 

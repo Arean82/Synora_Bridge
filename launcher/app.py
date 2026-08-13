@@ -32,15 +32,16 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QTextBrowser,
     QVBoxLayout,
 )
 from qt_material import apply_stylesheet  # import AFTER PySide6 (qt-material requirement)
 
 from launcher import config as C
+from launcher.build_info import APP_NAME, APP_VERSION, EXE_NAME
 from launcher.services import SERVICE_ORDER, Service, STATUS_COLORS
 
-APP_TITLE = "Synora Bridge — Stack Launcher"
-APP_VERSION = "1.3.0"
+APP_TITLE = f"{APP_NAME} — Stack Launcher"
 
 # qt-material accents available in both light and dark (from list_themes()).
 ACCENTS = ["amber", "blue", "cyan", "lightgreen", "pink", "purple", "red", "teal", "yellow"]
@@ -170,18 +171,18 @@ class LauncherApp:
 
         py_env = {"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
 
-        daphne = [venv, "-m", "daphne", "-b", self.daphne_host, "-p", str(self.daphne_port)]
+        # Frozen all-in-one: services re-invoke the exe via --service (the
+        # whole stack is bundled). Dev: run the repo venv's python -m.
+        daphne = C.service_argv("daphne", "-b", self.daphne_host, "-p", str(self.daphne_port))
         if proxy_enabled:
             daphne.append("--proxy-headers")
         daphne.append("config.asgi:application")
 
-        worker = [venv, "-m", "celery", "-A", "config.celery", "worker", "--loglevel=info"]
         if os.name == "nt":
-            worker += ["--pool=solo", "--concurrency=1"]
+            worker = C.service_argv("worker") + ["--pool=solo", "--concurrency=1", "--loglevel=info"]
         else:
-            worker += ["--concurrency", str(concurrency)]
-
-        beat = [venv, "-m", "celery", "-A", "config.celery", "beat", "--loglevel=info"]
+            worker = C.service_argv("worker") + ["--concurrency", str(concurrency), "--loglevel=info"]
+        beat = C.service_argv("beat") + ["--loglevel=info"]
 
         frontend_argv, frontend_env = self._frontend_argv()
 
@@ -192,13 +193,20 @@ class LauncherApp:
             "frontend": (frontend_argv, frontend_env),
         }
 
+    def _node_path(self) -> str:
+        """Node executable: a bundled runtime (runtime/node, shipped by the
+        all-in-one build) wins over the system PATH."""
+        bundled = C.RUNTIME_DIR / "node" / ("node.exe" if os.name == "nt" else "node")
+        if bundled.exists():
+            return str(bundled)
+        return shutil.which("node") or "node"
+
     def _frontend_argv(self):
         """(argv, env) for the frontend: production build if present, else dev."""
         prod_server = C.FRONTEND_DIR / ".output" / "server" / "index.mjs"
         if prod_server.exists():
-            node = shutil.which("node") or "node"
             return (
-                [node, str(prod_server)],
+                [self._node_path(), str(prod_server)],
                 {"PORT": str(self.frontend_port), "HOST": self.daphne_host or "127.0.0.1"},
             )
         return (C.npm_argv("npm", "run", "dev", "--", "--port", str(self.frontend_port)), {})
@@ -288,6 +296,8 @@ class LauncherApp:
         # Documentation
         m_docs = bar.addMenu("Documentation")
         for doc, name in (("README.md", "actionDocReadme"),
+                          ("docs/INSTALLATION_MANUAL.md", "actionDocManual"),
+                          ("docs/ARCHITECTURE.md", "actionDocArch"),
                           ("docs/DEPLOYMENT.md", "actionDocDeploy"),
                           ("docs/SECURITY.md", "actionDocSecurity"),
                           ("LICENSE", "actionDocLicense")):
@@ -444,16 +454,71 @@ class LauncherApp:
             return
         reader = QDialog(self.window)
         reader.setWindowTitle(f"Synora Bridge — {Path(rel_path).name}")
-        reader.resize(780, 560)
+        reader.resize(860, 620)
         layout = QVBoxLayout(reader)
-        text = QPlainTextEdit()
-        text.setReadOnly(True)
-        layout.addWidget(text)
+        # QTextBrowser renders the converted HTML (Python-Markdown + pygments —
+        # same compiler the reference md_converter uses); links open externally.
+        browser = QTextBrowser()
+        browser.setOpenExternalLinks(True)
+        browser.document().setDocumentMargin(12)
+        layout.addWidget(browser)
         try:
-            text.setPlainText(target.read_text(encoding="utf-8"))
+            content = target.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
-            text.setPlainText(f"[launcher] could not read {rel_path}: {exc}")
+            content = f"[launcher] could not read {rel_path}: {exc}"
+        if target.suffix.lower() == ".md":
+            browser.setHtml(self._render_markdown(content))
+        else:
+            browser.setPlainText(content)
         reader.exec()
+
+    def _render_markdown(self, content: str) -> str:
+        """Convert Markdown to styled HTML (Python-Markdown + pygments).
+
+        Mirrors the reference md_converter compiler: tables, footnotes,
+        fenced code with syntax highlighting, md_in_html, meta, nl2br,
+        sane_lists. pygments runs with ``noclasses`` so the highlight colors
+        are inline styles — Qt's rich-text engine renders those reliably.
+        """
+        from markdown import Markdown
+        from markdown.extensions.codehilite import CodeHiliteExtension
+        from pygments.formatters import HtmlFormatter
+
+        md = Markdown(extensions=[
+            "tables", "footnotes", "fenced_code", "md_in_html", "meta",
+            "nl2br", "sane_lists",
+            CodeHiliteExtension(css_class="highlight", use_pygments=True,
+                                pygments_style="monokai" if self.resolved_theme == "dark" else "default"),
+        ])
+        body = md.convert(content)
+
+        if self.resolved_theme == "dark":
+            bg, fg, border, link = "#0f172a", "#e5e7eb", "#334155", "#60a5fa"
+            code_bg = "#0b0f19"
+        else:
+            bg, fg, border, link = "#ffffff", "#1f2937", "#cbd5e1", "#2563eb"
+            code_bg = "#f8fafc"
+
+        css = (
+            f"body {{ margin:0; padding:0 4px 12px; font-family:'Segoe UI',Arial,sans-serif;"
+            f" font-size:13px; color:{fg}; background:{bg}; line-height:1.5; }}"
+            f"h1,h2,h3,h4 {{ margin:1.1em 0 .5em; }}"
+            f"h1 {{ font-size:1.5em; border-bottom:2px solid {border}; padding-bottom:.25em; }}"
+            f"h2 {{ font-size:1.25em; border-bottom:1px solid {border}; padding-bottom:.2em; }}"
+            f"code {{ background:{code_bg}; padding:1px 4px; border-radius:4px;"
+            f" font-family:Consolas,monospace; font-size:12px; }}"
+            f"pre {{ background:{code_bg}; border:1px solid {border}; border-radius:8px;"
+            f" padding:10px; overflow-x:auto; }}"
+            f"pre code {{ background:none; padding:0; }}"
+            f"table {{ border-collapse:collapse; margin:.8em 0; }}"
+            f"th,td {{ border:1px solid {border}; padding:5px 10px; }}"
+            f"th {{ background:{code_bg}; }}"
+            f"a {{ color:{link}; }}"
+            f"blockquote {{ border-left:4px solid {border}; margin:.6em 0; padding:2px 12px;"
+            f" color:#6b7280; }}"
+            f"hr {{ border:none; border-top:1px solid {border}; margin:1em 0; }}"
+        )
+        return f"<html><head><style>{css}</style></head><body>{body}</body></html>"
 
     def _show_about(self):
         QMessageBox.information(

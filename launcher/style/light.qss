@@ -44,3 +44,14 @@ QPlainTextEdit {
     font-size: 10pt;
     selection-background-color: #bfdbfe;
 }
+QTextBrowser {
+    background-color: #ffffff;
+    color: #1f2937;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Segoe UI';
+    font-size: 12px;
+    selection-background-color: #bfdbfe;
+}
+QTextBrowser a { color: #2563eb; }

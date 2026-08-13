@@ -9,22 +9,21 @@
 ## Development (Windows)
 
 ```powershell
-# Backend
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python manage.py migrate
-python scripts/seed_demo.py --create-admin   # optional demo dataset (real fetchable sources)
-python -m daphne -b 127.0.0.1 -p 8000 config.asgi:application
+# 1. Backend venv
+python -m venv backend\.venv
+backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev                       # http://localhost:3000
+# 2. Configure environment + database (development → SQLite; production → PG/SQLite)
+backend\.venv\Scripts\python.exe scripts\setup_db.py
+
+# 3. Migrations + demo data
+backend\.venv\Scripts\python.exe scripts\initialize_system.py
+
+# 4. Run — easiest via the stack launcher GUI (4 tabs: daphne/worker/beat/frontend)
+start_launcher.bat
 ```
 
-Or use `scripts\dev_backend.bat` and `scripts\dev_frontend.bat`.
+Manual alternative (four terminals): daphne `-b 127.0.0.1 -p 8000 config.asgi:application` in `backend/`, `celery -A config.celery worker --pool=solo --concurrency=1 -l info`, `celery -A config.celery beat -l info`, and `npm run dev` in `frontend/`. See `docs/INSTALLATION_MANUAL.md` for the full beginner walkthrough (including building a standalone exe with PyInstaller).
 
 ## Production
 

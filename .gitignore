@@ -26,6 +26,9 @@ instance/
 *.log
 logs/
 
+# All-in-one build staging (clean backend copy + node runtime for bundling)
+installer_stage/
+
 # Django
 backend/staticfiles/
 backend/db.sqlite3

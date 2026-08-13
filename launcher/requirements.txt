@@ -1,6 +1,13 @@
 # Synora Bridge — Stack Launcher (PySide6)
 # Install into the backend venv:
 #   backend\.venv\Scripts\pip install -r launcher\requirements.txt
+#
+# Runtime
 PySide6>=6.6
 qt-material>=2.14
 darkdetect>=0.8
+markdown>=3.4
+pygments>=2.14
+
+# Build (standalone exe)
+pyinstaller>=6.6

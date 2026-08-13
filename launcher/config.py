@@ -13,19 +13,90 @@ import shutil
 import signal
 import socket
 import subprocess
+import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-BACKEND_DIR = REPO_ROOT / "backend"
-FRONTEND_DIR = REPO_ROOT / "frontend"
-LAUNCHER_DIR = Path(__file__).resolve().parent
+# PyInstaller frozen mode: __file__ lives in the extraction dir (_MEIPASS).
+FROZEN = bool(getattr(sys, "frozen", False))
+
+
+def _repo_root() -> Path:
+    """Repo root. Frozen: the exe's directory (or SYNORA_HOME override) — the
+    stack (backend/, frontend/) must live beside the exe, or is bundled
+    inside the all-in-one build."""
+    if FROZEN:
+        return Path(os.environ.get("SYNORA_HOME", Path(sys.executable).resolve().parent))
+    return Path(__file__).resolve().parent.parent
+
+
+def _launcher_dir() -> Path:
+    """Where the bundled .ui/.qss live. Frozen: inside the PyInstaller bundle
+    (_MEIPASS) under the 'launcher' prefix (the spec bundles
+    launcher/ui/… and launcher/style/…); dev: this package directory."""
+    if FROZEN:
+        return Path(getattr(sys, "_MEIPASS", REPO_ROOT)) / "launcher"
+    return Path(__file__).resolve().parent
+
+
+REPO_ROOT = _repo_root()
+LAUNCHER_DIR = _launcher_dir()
+
+
+def _backend_dir() -> Path:
+    """Backend source root. Frozen all-in-one: bundled inside the app under
+    '_internal/backend' (onedir) / '_MEIPASS/backend' (onefile); dev or
+    developer exe: the repo beside the exe."""
+    if FROZEN:
+        bundled = Path(getattr(sys, "_MEIPASS", REPO_ROOT)) / "backend"
+        if bundled.exists():
+            return bundled
+        return REPO_ROOT / "backend"
+    return REPO_ROOT / "backend"
+
+
+def _frontend_dir() -> Path:
+    """Frontend root (production build under it). Frozen all-in-one: bundled
+    '_internal/frontend'; developer exe: repo beside the exe."""
+    if FROZEN:
+        bundled = Path(getattr(sys, "_MEIPASS", REPO_ROOT)) / "frontend"
+        if bundled.exists():
+            return bundled
+    return REPO_ROOT / "frontend"
+
+
+def _runtime_dir() -> Path:
+    """Bundled runtimes (e.g. node). Frozen all-in-one: '_internal/runtime'."""
+    if FROZEN:
+        bundled = Path(getattr(sys, "_MEIPASS", REPO_ROOT)) / "runtime"
+        if bundled.exists():
+            return bundled
+    return REPO_ROOT / "runtime"
+
+
+BACKEND_DIR = _backend_dir()
+FRONTEND_DIR = _frontend_dir()
+RUNTIME_DIR = _runtime_dir()
 UI_DIR = LAUNCHER_DIR / "ui"
 STYLE_DIR = LAUNCHER_DIR / "style"
 
 CONFIG_INI = BACKEND_DIR / "config.ini"
-LAUNCHER_JSON = LAUNCHER_DIR / "launcher.json"
+# Runtime prefs must be writable: never inside the onefile _MEIPASS temp dir.
+LAUNCHER_JSON = (REPO_ROOT / "launcher.json") if FROZEN else (LAUNCHER_DIR / "launcher.json")
 
 IS_WINDOWS = os.name == "nt"
+
+
+def service_argv(*args) -> list[str]:
+    """Command line for a backend service.
+
+    Frozen all-in-one: the exe re-invokes itself in --service mode (the whole
+    stack — django/daphne/celery — is bundled). Dev/developer exe: the repo
+    venv's python runs `python -m …`.
+    """
+    if FROZEN:
+        return [sys.executable, "--service"] + list(args)
+    python = VENV_PYTHON if VENV_PYTHON.exists() else sys.executable
+    return [str(python), "-m"] + list(args)
 
 
 def _venv_layout() -> tuple[Path, Path]:
